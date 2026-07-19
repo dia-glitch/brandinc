@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; code: string } | { ok: false; error: string };
@@ -24,6 +26,7 @@ export type ARInput = {
 
 export async function createReceivable(input: ARInput): Promise<CreateResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.brandId) return { ok: false, error: "Pilih brand." };
   if (!input.billTo.trim() && !input.channelId) return { ok: false, error: "Pilih store / isi penerima tagihan." };
   if (!(input.amount > 0)) return { ok: false, error: "Nominal tagihan harus > 0." };
@@ -39,6 +42,7 @@ export async function createReceivable(input: ARInput): Promise<CreateResult> {
 
 export async function deleteReceivable(id: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("receivables").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   rv(); return { ok: true };
@@ -47,6 +51,7 @@ export async function deleteReceivable(id: string): Promise<Result> {
 /** Terima pembayaran dari store → kas masuk (ref_type ar_receipt, ref_key = AR code). */
 export async function receiveAR(input: { id: string; code: string; amount: number; accountId: string; date: string; method: string }): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "sales_penerimaan")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.accountId) return { ok: false, error: "Pilih akun kas/bank penerima." };
   if (!(input.amount > 0)) return { ok: false, error: "Nominal terima harus > 0." };
   const { error } = await supabase.from("payments").insert({

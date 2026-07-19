@@ -13,7 +13,7 @@ export type WarehouseOpt = { id: string; name: string; kind: string; brandId: st
 
 type Row = { variantId: string | null; sku: string; size: string; productName: string; qtyPo: number; alreadyGood: number; unitCost: number; incoming: string };
 
-export function IncomingForm({ pos }: { pos: POOpt[] }) {
+export function IncomingForm({ pos, canEdit = true }: { pos: POOpt[]; canEdit?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -65,6 +65,8 @@ export function IncomingForm({ pos }: { pos: POOpt[] }) {
       router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

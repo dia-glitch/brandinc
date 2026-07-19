@@ -34,7 +34,7 @@ export type PORow = {
 };
 const poTotal = (r: PORow) => r.lines.reduce((s, l) => s + (Number(l.qty) || 0) * (Number(l.unit_price) || 0), 0) + (Number(r.ppn_amount) || 0);
 
-export function POList({ rows }: { rows: PORow[] }) {
+export function POList({ rows, canEdit = true }: { rows: PORow[]; canEdit?: boolean }) {
   const [q, setQ] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
 
@@ -89,7 +89,7 @@ export function POList({ rows }: { rows: PORow[] }) {
                 <th className="py-2.5 pr-4 text-right">Aksi</th>
               </tr>
             </thead>
-            {list.map((r) => <PORowItem key={r.id} row={r} />)}
+            {list.map((r) => <PORowItem key={r.id} row={r} canEdit={canEdit} />)}
           </table>
         </div>
       )}
@@ -97,7 +97,7 @@ export function POList({ rows }: { rows: PORow[] }) {
   );
 }
 
-function PORowItem({ row }: { row: PORow }) {
+function PORowItem({ row, canEdit = true }: { row: PORow; canEdit?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -131,28 +131,27 @@ function PORowItem({ row }: { row: PORow }) {
               className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground">
               <Printer className="h-4 w-4" /> Detail / Print
             </a>
-            {received && (
-              row.invoice_no ? (
-                <a href={`/print/invoice/${row.id}`} target="_blank" rel="noreferrer" title={`Invoice ${row.invoice_no}`}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:opacity-80">
-                  <FileText className="h-4 w-4" /> Invoice
-                </a>
-              ) : (
-                <Button variant="ghost" size="sm" disabled={pending} title="Buat invoice reference untuk supplier & finance"
-                  onClick={() => startTransition(async () => {
-                    const r = await createInvoiceRef(row.id);
-                    if (r.ok) { window.open(`/print/invoice/${row.id}`, "_blank"); router.refresh(); }
-                  })}>
-                  <FileText className="h-4 w-4" /> Buat Invoice
-                </Button>
-              )
+            {received && row.invoice_no && (
+              <a href={`/print/invoice/${row.id}`} target="_blank" rel="noreferrer" title={`Invoice ${row.invoice_no}`}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:opacity-80">
+                <FileText className="h-4 w-4" /> Invoice
+              </a>
             )}
-            {!cancelled && !received && (
+            {canEdit && received && !row.invoice_no && (
+              <Button variant="ghost" size="sm" disabled={pending} title="Buat invoice reference untuk supplier & finance"
+                onClick={() => startTransition(async () => {
+                  const r = await createInvoiceRef(row.id);
+                  if (r.ok) { window.open(`/print/invoice/${row.id}`, "_blank"); router.refresh(); }
+                })}>
+                <FileText className="h-4 w-4" /> Buat Invoice
+              </Button>
+            )}
+            {canEdit && !cancelled && !received && (
               <Button variant="ghost" size="sm" onClick={() => setReceiving(true)} title="Terima bahan">
                 <PackageCheck className="h-4 w-4" /> Terima
               </Button>
             )}
-            {cancelled ? (
+            {canEdit && (cancelled ? (
               <Button variant="ghost" size="icon" disabled={pending} title="Aktifkan lagi"
                 onClick={() => startTransition(async () => { await restorePO(row.id); router.refresh(); })}>
                 <RotateCcw className="h-4 w-4" />
@@ -167,7 +166,7 @@ function PORowItem({ row }: { row: PORow }) {
               ) : (
                 <Button variant="ghost" size="icon" onClick={() => setConfirmCancel(true)} title="Batalkan PO"><Ban className="h-4 w-4" /></Button>
               )
-            )}
+            ))}
           </div>
         </td>
       </tr>

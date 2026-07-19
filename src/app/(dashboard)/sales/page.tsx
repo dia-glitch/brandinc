@@ -2,11 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getAccounts } from "@/lib/finance";
 import { getSkuCosting } from "@/lib/costing";
-import { isAdmin } from "@/lib/roles";
+import { getRole, isAdmin } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { SalesView, type SaleRow, type StockOpt, type BrandOpt, type ChannelOpt, type AccountOpt } from "./sales-view";
 
 async function getData() {
-  if (!isSupabaseConfigured()) return { rows: [] as SaleRow[], stock: [] as StockOpt[], brands: [] as BrandOpt[], channels: [] as ChannelOpt[], accounts: [] as AccountOpt[], admin: false };
+  if (!isSupabaseConfigured()) return { rows: [] as SaleRow[], stock: [] as StockOpt[], brands: [] as BrandOpt[], channels: [] as ChannelOpt[], accounts: [] as AccountOpt[], admin: false, canEdit: true, canReceive: true };
   const supabase = createClient();
   const [soRes, soLineRes, balRes, varRes, prodRes, whRes, brandRes, chanRes, payRes, accs, cogm, srRes, srLineRes] = await Promise.all([
     supabase.from("sales_orders").select("id,code,brand_id,channel_id,settlement,ext_order_id,customer,order_date,discount,commission,ppn,notes").is("deleted_at", null).order("created_at", { ascending: false }),
@@ -83,14 +84,17 @@ async function getData() {
 
   const channels: ChannelOpt[] = (chanRes.data ?? []).filter((c) => c.is_active !== false).map((c) => ({ id: c.id as string, name: c.name as string, grup: (c.grup as string) ?? "online", warehouseId: (c.warehouse_id as string | null) ?? null }));
   const admin = await isAdmin(supabase);
-  return { rows, stock, brands, channels, accounts: accs.map((a) => ({ id: a.id, name: a.name, balance: a.balance })), admin };
+  const role = await getRole(supabase);
+  const canEdit = canAct(role, "sales_penjualan");
+  const canReceive = canAct(role, "sales_penerimaan");
+  return { rows, stock, brands, channels, accounts: accs.map((a) => ({ id: a.id, name: a.name, balance: a.balance })), admin, canEdit, canReceive };
 }
 
 export default async function SalesPage() {
-  const { rows, stock, brands, channels, accounts, admin } = await getData();
+  const { rows, stock, brands, channels, accounts, admin, canEdit, canReceive } = await getData();
   return (
     <div className="mx-auto max-w-7xl">
-      <SalesView rows={rows} stock={stock} brands={brands} channels={channels} accounts={accounts} isAdmin={admin} />
+      <SalesView rows={rows} stock={stock} brands={brands} channels={channels} accounts={accounts} isAdmin={admin} canEdit={canEdit} canReceive={canReceive} />
     </div>
   );
 }

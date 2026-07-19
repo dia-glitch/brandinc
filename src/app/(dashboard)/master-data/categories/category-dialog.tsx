@@ -21,11 +21,13 @@ export function CategoryDialog({
   defaultParentId,
   parents,
   label,
+  canEdit = true,
 }: {
   category?: CategoryData;
   defaultParentId?: string | null;
   parents: ParentOpt[];
   label?: string;
+  canEdit?: boolean;
 }) {
   const isEdit = Boolean(category);
   const isParent = isEdit && !category?.parent_id;
@@ -77,6 +79,8 @@ export function CategoryDialog({
       router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

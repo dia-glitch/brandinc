@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { ProductForm } from "./product-form";
 import { ProductList, type ProductRow } from "./product-list";
 
@@ -71,6 +73,9 @@ async function getData() {
 export default async function ProductionProductsPage() {
   const { products, brands, catParents, catSubs, colorParents, colorSubs, sizes } = await getData();
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "prod_product");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -81,7 +86,7 @@ export default async function ProductionProductsPage() {
             {products.length} produk. SKU otomatis: KodeBrand-KodeKategori+No-Ukuran (mis. BRE-SH001-S).
           </p>
         </div>
-        <ProductForm brands={brands} catParents={catParents} catSubs={catSubs} colorParents={colorParents} colorSubs={colorSubs} sizes={sizes} />
+        {canEdit && <ProductForm brands={brands} catParents={catParents} catSubs={catSubs} colorParents={colorParents} colorSubs={colorSubs} sizes={sizes} />}
       </div>
 
       {products.length === 0 ? (
@@ -92,7 +97,7 @@ export default async function ProductionProductsPage() {
           </p>
         </div>
       ) : (
-        <ProductList products={products} sizes={sizes} />
+        <ProductList products={products} sizes={sizes} canEdit={canEdit} />
       )}
 
       <p className="text-xs font-medium text-muted-foreground">

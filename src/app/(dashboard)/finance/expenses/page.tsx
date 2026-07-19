@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getExpenseCategories, getAccounts } from "@/lib/finance";
-import { getUserName } from "@/lib/roles";
+import { getUserName, getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { ExpenseView, type ExpenseRow, type BrandOpt, type AccountOpt } from "./expense-view";
 
 async function getData(): Promise<{ rows: ExpenseRow[]; brands: BrandOpt[]; accounts: AccountOpt[]; categories: string[] }> {
@@ -27,10 +28,15 @@ async function getData(): Promise<{ rows: ExpenseRow[]; brands: BrandOpt[]; acco
 
 export default async function ExpensesPage() {
   const { rows, brands, accounts, categories } = await getData();
-  const userName = isSupabaseConfigured() ? await getUserName(createClient()) : "";
+  let userName = "", canEdit = true;
+  if (isSupabaseConfigured()) {
+    const supabase = createClient();
+    userName = await getUserName(supabase);
+    canEdit = canAct(await getRole(supabase), "fin_other");
+  }
   return (
     <div className="mx-auto max-w-7xl">
-      <ExpenseView rows={rows} categories={categories} brands={brands} accounts={accounts} userName={userName} />
+      <ExpenseView rows={rows} categories={categories} brands={brands} accounts={accounts} userName={userName} canEdit={canEdit} />
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { IncomingForm, type POOpt, type WarehouseOpt } from "./incoming-form";
 import { IncomingList, type IncRow } from "./incoming-list";
 
@@ -86,6 +88,9 @@ async function getData() {
 export default async function IncomingPage() {
   const { pos, warehouses, rows } = await getData();
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "fg_incoming_qc");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -96,7 +101,7 @@ export default async function IncomingPage() {
             {rows.length} penerimaan. Alur bertahap: Inbound → Proses QC → (Repair → Terima Repair → QC lagi). Good ke gudang brand, Damage ke gudang damage.
           </p>
         </div>
-        <IncomingForm pos={pos} />
+        <IncomingForm pos={pos} canEdit={canEdit} />
       </div>
 
       {rows.length === 0 ? (
@@ -105,7 +110,7 @@ export default async function IncomingPage() {
           <p className="mt-1 text-sm font-medium text-muted-foreground">Klik &quot;Inbound Barang&quot;: pilih PO Produksi → catat qty datang. QC menyusul di tahap berikutnya.</p>
         </div>
       ) : (
-        <IncomingList rows={rows} warehouses={warehouses} />
+        <IncomingList rows={rows} warehouses={warehouses} canEdit={canEdit} />
       )}
     </div>
   );

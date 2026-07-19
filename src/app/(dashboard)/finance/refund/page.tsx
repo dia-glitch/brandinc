@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getAccounts } from "@/lib/finance";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { RefundView, type RefundRow, type AccountOpt } from "./refund-view";
 
 async function getData(): Promise<{ rows: RefundRow[]; accounts: AccountOpt[] }> {
@@ -24,9 +26,11 @@ async function getData(): Promise<{ rows: RefundRow[]; accounts: AccountOpt[] }>
 
 export default async function RefundPage() {
   const { rows, accounts } = await getData();
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "fin_other");
   return (
     <div className="mx-auto max-w-7xl">
-      <RefundView rows={rows} accounts={accounts} />
+      <RefundView rows={rows} accounts={accounts} canEdit={canEdit} />
     </div>
   );
 }

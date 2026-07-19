@@ -14,7 +14,7 @@ export type ProductOpt = { id: string; name: string; brand_id: string; variants:
 
 const SUPPLIER_TYPES = ["CMT", "FOB", "Full Package", "Cut-Make", "Lainnya"];
 
-export function SPKForm({ brands, products, suppliers }: { brands: BrandOpt[]; products: ProductOpt[]; suppliers: SupplierOpt[] }) {
+export function SPKForm({ brands, products, suppliers, canEdit = true }: { brands: BrandOpt[]; products: ProductOpt[]; suppliers: SupplierOpt[]; canEdit?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -132,6 +132,8 @@ export function SPKForm({ brands, products, suppliers }: { brands: BrandOpt[]; p
 
   const previewCode = brand ? `SPK-${brand.code.toUpperCase()}-###` : "—";
   const computedTotal = computed.rows.reduce((s, r) => s + r.qty, 0);
+
+  if (!canEdit) return null;
 
   return (
     <>

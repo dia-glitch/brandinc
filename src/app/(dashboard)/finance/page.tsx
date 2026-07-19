@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getPayables, getAccounts } from "@/lib/finance";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { APTable, type Payable, type AccountOpt } from "./ap-table";
 
 async function getData(): Promise<{ rows: Payable[]; accounts: AccountOpt[] }> {
@@ -12,6 +14,8 @@ async function getData(): Promise<{ rows: Payable[]; accounts: AccountOpt[] }> {
 
 export default async function FinanceAPPage() {
   const { rows, accounts } = await getData();
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "fin_other");
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div>
@@ -21,7 +25,7 @@ export default async function FinanceAPPage() {
           Otomatis dari invoice bahan (PO) &amp; jasa produksi (GRN). Klik Bayar → pilih akun kas/bank (saldo berkurang).
         </p>
       </div>
-      <APTable rows={rows} accounts={accounts} />
+      <APTable rows={rows} accounts={accounts} canEdit={canEdit} />
     </div>
   );
 }

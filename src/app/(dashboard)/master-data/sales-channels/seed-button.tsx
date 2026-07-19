@@ -6,10 +6,11 @@ import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { seedDefaultChannels } from "./actions";
 
-export function SeedButton() {
+export function SeedButton({ canEdit = true }: { canEdit?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
+  if (!canEdit) return null;
   return (
     <div className="flex items-center gap-2">
       {msg && <span className="text-sm font-semibold text-muted-foreground">{msg}</span>}

@@ -20,7 +20,7 @@ export type SupplierOpt = { id: string; name: string; is_taxable: boolean };
 
 type Row = { spkLineId: string; sku: string; size: string; productName: string; qtySpk: number; qty: string };
 
-export function ProdPOForm({ spks, suppliers }: { spks: SpkOpt[]; suppliers: SupplierOpt[] }) {
+export function ProdPOForm({ spks, suppliers, canEdit = true }: { spks: SpkOpt[]; suppliers: SupplierOpt[]; canEdit?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -97,6 +97,8 @@ export function ProdPOForm({ spks, suppliers }: { spks: SpkOpt[]; suppliers: Sup
   }
 
   const previewCode = spk ? `PO-${spk.code.toUpperCase()}` : "—";
+
+  if (!canEdit) return null;
 
   return (
     <>

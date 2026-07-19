@@ -14,7 +14,7 @@ export type OrderOpt = { id: string; code: string; brandId: string | null; brand
 export type WarehouseOpt = { id: string; name: string; brandId: string | null };
 export type ReturnRow = { id: string; code: string; orderCode: string; brand: string; channel: string; date: string | null; reason: string; qty: number; value: number; lines: { sku: string; productName: string; size: string; qty: number; price: number; restock: string }[] };
 
-export function ReturnView({ orders, rows, damageWarehouses }: { orders: OrderOpt[]; rows: ReturnRow[]; damageWarehouses: WarehouseOpt[] }) {
+export function ReturnView({ orders, rows, damageWarehouses, canEdit = true }: { orders: OrderOpt[]; rows: ReturnRow[]; damageWarehouses: WarehouseOpt[]; canEdit?: boolean }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const query = q.trim().toLowerCase();
@@ -29,7 +29,7 @@ export function ReturnView({ orders, rows, damageWarehouses }: { orders: OrderOp
           <h1 className="text-2xl font-extrabold">Return Penjualan</h1>
           <p className="mt-1 text-sm font-medium text-muted-foreground">Barang kembali → stok masuk lagi (Good/Damage), revenue &amp; COGS dibalik di P&amp;L. Total nilai retur: <b className="text-danger">{formatIDR(totalValue)}</b></p>
         </div>
-        <Button size="sm" onClick={() => setOpen(true)} disabled={orders.length === 0}><Plus className="h-4 w-4" /> Buat Return</Button>
+        {canEdit && <Button size="sm" onClick={() => setOpen(true)} disabled={orders.length === 0}><Plus className="h-4 w-4" /> Buat Return</Button>}
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5">
@@ -52,7 +52,7 @@ export function ReturnView({ orders, rows, damageWarehouses }: { orders: OrderOp
               </tr>
             </thead>
             <tbody>
-              {list.map((r) => <ReturnRowItem key={r.id} row={r} />)}
+              {list.map((r) => <ReturnRowItem key={r.id} row={r} canEdit={canEdit} />)}
             </tbody>
           </table>
         </div>
@@ -63,7 +63,7 @@ export function ReturnView({ orders, rows, damageWarehouses }: { orders: OrderOp
   );
 }
 
-function ReturnRowItem({ row }: { row: ReturnRow }) {
+function ReturnRowItem({ row, canEdit = true }: { row: ReturnRow; canEdit?: boolean }) {
   const router = useRouter();
   const [openRow, setOpenRow] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -80,8 +80,8 @@ function ReturnRowItem({ row }: { row: ReturnRow }) {
         <td className="py-2.5 pr-3 text-right tabular-nums">{row.qty}</td>
         <td className="py-2.5 pr-3 text-right tabular-nums text-danger">{formatIDR(row.value)}</td>
         <td className="py-2.5 pr-4 text-right">
-          {confirm ? <Button size="sm" variant="danger" disabled={pending} onClick={() => startTransition(async () => { await deleteSalesReturn(row.id); router.refresh(); })}>Yakin?</Button>
-            : <button onClick={() => setConfirm(true)} className="text-muted-foreground hover:text-danger"><Trash2 className="h-4 w-4" /></button>}
+          {canEdit && (confirm ? <Button size="sm" variant="danger" disabled={pending} onClick={() => startTransition(async () => { await deleteSalesReturn(row.id); router.refresh(); })}>Yakin?</Button>
+            : <button onClick={() => setConfirm(true)} className="text-muted-foreground hover:text-danger"><Trash2 className="h-4 w-4" /></button>)}
         </td>
       </tr>
       {openRow && (

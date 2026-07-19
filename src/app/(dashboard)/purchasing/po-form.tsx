@@ -17,7 +17,7 @@ type Line = { key: string; materialId: string; qty: string; unitPrice: string };
 let seq = 0;
 const newKey = () => `l${seq++}`;
 
-export function POForm({ brands, suppliers, materials }: { brands: BrandOpt[]; suppliers: SupplierOpt[]; materials: MaterialOpt[] }) {
+export function POForm({ brands, suppliers, materials, canEdit = true }: { brands: BrandOpt[]; suppliers: SupplierOpt[]; materials: MaterialOpt[]; canEdit?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -98,6 +98,8 @@ export function POForm({ brands, suppliers, materials }: { brands: BrandOpt[]; s
   }
 
   const previewCode = brand ? `PO-${brand.code.toUpperCase()}-###` : "—";
+
+  if (!canEdit) return null;
 
   return (
     <>

@@ -23,7 +23,7 @@ export type ProductRow = {
 };
 type SizeOpt = { id: string; name: string };
 
-export function ProductList({ products, sizes }: { products: ProductRow[]; sizes: SizeOpt[] }) {
+export function ProductList({ products, sizes, canEdit = true }: { products: ProductRow[]; sizes: SizeOpt[]; canEdit?: boolean }) {
   return (
     <div className="card overflow-hidden p-0">
       <table className="w-full text-sm">
@@ -35,16 +35,16 @@ export function ProductList({ products, sizes }: { products: ProductRow[]; sizes
             <th className="py-2.5 pr-3">SKU</th>
             <th className="hidden py-2.5 pr-3 md:table-cell">Brand</th>
             <th className="hidden py-2.5 pr-3 md:table-cell">Kategori</th>
-            <th className="py-2.5 pr-4 text-right">Aksi</th>
+            {canEdit && <th className="py-2.5 pr-4 text-right">Aksi</th>}
           </tr>
         </thead>
-        {products.map((p) => <ProductRowItem key={p.id} product={p} sizes={sizes} />)}
+        {products.map((p) => <ProductRowItem key={p.id} product={p} sizes={sizes} canEdit={canEdit} />)}
       </table>
     </div>
   );
 }
 
-function ProductRowItem({ product, sizes }: { product: ProductRow; sizes: SizeOpt[] }) {
+function ProductRowItem({ product, sizes, canEdit = true }: { product: ProductRow; sizes: SizeOpt[]; canEdit?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -83,6 +83,7 @@ function ProductRowItem({ product, sizes }: { product: ProductRow; sizes: SizeOp
         <td className="py-2.5 pr-3"><Badge tone="neutral">{product.variants.length}</Badge></td>
         <td className="hidden py-2.5 pr-3 font-medium text-muted-foreground md:table-cell">{product.brand_name}</td>
         <td className="hidden py-2.5 pr-3 font-medium text-muted-foreground md:table-cell">{product.category_name}</td>
+        {canEdit && (
         <td className="py-2.5 pr-4 text-right">
           {cancelled ? (
             <button onClick={doRestore} disabled={pending} title="Pulihkan" className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground">
@@ -99,6 +100,7 @@ function ProductRowItem({ product, sizes }: { product: ProductRow; sizes: SizeOp
             </button>
           )}
         </td>
+        )}
       </tr>
 
       {open && (
@@ -111,7 +113,7 @@ function ProductRowItem({ product, sizes }: { product: ProductRow; sizes: SizeOp
                   <span className="text-xs font-semibold text-muted-foreground">{v.size ?? "—"}</span>
                 </div>
               ))}
-              {!cancelled && availableSizes.length > 0 && (
+              {canEdit && !cancelled && availableSizes.length > 0 && (
                 <div className="flex items-center gap-2 px-3 py-2">
                   <select value={addSizeId} onChange={(e) => setAddSizeId(e.target.value)}
                     className="h-9 rounded-lg border border-border bg-background px-2.5 text-xs font-semibold outline-none focus:border-primary/40">

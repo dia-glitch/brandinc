@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; code: string } | { ok: false; error: string };
@@ -46,6 +48,7 @@ async function stockIn(supabase: ReturnType<typeof createClient>, materialId: st
 
 export async function createCashPurchase(input: CPInput): Promise<CreateResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "rm_cash")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.prId) return { ok: false, error: "Pilih Cash Advance sumber dana." };
   if (!input.warehouseId) return { ok: false, error: "Pilih gudang." };
   const lines = (input.lines ?? []).filter((l) => l.materialId && l.qty > 0);
@@ -79,6 +82,7 @@ export async function createCashPurchase(input: CPInput): Promise<CreateResult> 
 
 export async function deleteCashPurchase(id: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "rm_cash")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   // Balik stok: keluarkan kembali qty yang pernah masuk dari pembelian ini.
   const { data: lines } = await supabase.from("cash_purchase_lines").select("material_id,qty,unit_price").eq("purchase_id", id).is("deleted_at", null);
   const { data: cp } = await supabase.from("cash_purchases").select("warehouse_id").eq("id", id).single();

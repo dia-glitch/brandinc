@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true; code: string } | { ok: false; error: string };
 type SimpleResult = { ok: true } | { ok: false; error: string };
@@ -53,6 +55,7 @@ async function nextSpkNo(supabase: ReturnType<typeof createClient>, brandId: str
 
 export async function createSPK(input: SPKInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_spk")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const lines = input.lines.filter((l) => l.qty > 0);
   if (lines.length === 0) return { ok: false, error: "Tambah minimal satu baris (ukuran + jumlah)." };
 
@@ -131,6 +134,7 @@ export async function createSPK(input: SPKInput): Promise<Result> {
 /** Set/ganti foto produk pada SPK yang sudah ada. */
 export async function setSpkImage(id: string, imageUrl: string): Promise<SimpleResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_spk")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("work_orders")
     .update({ image_url: imageUrl || null, updated_at: new Date().toISOString() })
@@ -142,6 +146,7 @@ export async function setSpkImage(id: string, imageUrl: string): Promise<SimpleR
 
 export async function cancelSPK(id: string): Promise<SimpleResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_spk")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("work_orders")
     .update({ status: "cancelled", updated_at: new Date().toISOString() })
@@ -153,6 +158,7 @@ export async function cancelSPK(id: string): Promise<SimpleResult> {
 
 export async function restoreSPK(id: string): Promise<SimpleResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_spk")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("work_orders")
     .update({ status: "open", updated_at: new Date().toISOString() })

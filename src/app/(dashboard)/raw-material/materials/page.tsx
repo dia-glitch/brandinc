@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { MaterialDialog, type MaterialData } from "./material-dialog";
 import { CategoryManager, type MaterialCategory } from "./category-manager";
@@ -23,6 +25,8 @@ async function getData(): Promise<{ materials: MaterialData[]; categories: Mater
 
 export default async function MaterialsPage() {
   const { materials, categories, brands } = await getData();
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "rm_create");
   const catName = (id: string | null) => categories.find((c) => c.id === id)?.name ?? "—";
   const brandName = (id: string | null) => brands.find((b) => b.id === id)?.name ?? "—";
 
@@ -35,8 +39,8 @@ export default async function MaterialsPage() {
           <p className="mt-1 text-sm font-medium text-muted-foreground">{materials.length} material terdaftar.</p>
         </div>
         <div className="flex gap-2.5">
-          <CategoryManager categories={categories} />
-          <MaterialDialog categories={categories} brands={brands} />
+          <CategoryManager categories={categories} canEdit={canEdit} />
+          <MaterialDialog categories={categories} brands={brands} canEdit={canEdit} />
         </div>
       </div>
 
@@ -70,7 +74,7 @@ export default async function MaterialsPage() {
                   <td className="px-5 py-3 font-medium text-muted-foreground">{catName(m.category_id)}</td>
                   <td className="px-5 py-3 font-medium text-muted-foreground">{m.unit ?? "—"}</td>
                   <td className="px-5 py-3">{m.is_active ? <Badge tone="success">Aktif</Badge> : <Badge tone="neutral">Nonaktif</Badge>}</td>
-                  <td className="px-5 py-3 text-right"><MaterialDialog material={m} categories={categories} brands={brands} /></td>
+                  <td className="px-5 py-3 text-right"><MaterialDialog material={m} categories={categories} brands={brands} canEdit={canEdit} /></td>
                 </tr>
               ))}
             </tbody>

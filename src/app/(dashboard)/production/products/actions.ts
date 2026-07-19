@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true; styleCode: string } | { ok: false; error: string };
 type SimpleResult = { ok: true } | { ok: false; error: string };
@@ -31,6 +33,7 @@ function slug(s: string) {
  */
 export async function createProductWithVariants(input: NewProductInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_product")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
 
   if (input.sizes.length === 0) return { ok: false, error: "Pilih minimal satu ukuran." };
 
@@ -103,6 +106,7 @@ export async function addVariant(
   retailPrice: number
 ): Promise<SimpleResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_product")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("product_variants").insert({
     company_id: DEMO_COMPANY_ID,
     brand_id: brandId,
@@ -126,6 +130,7 @@ export async function addVariant(
  */
 export async function cancelProduct(id: string): Promise<SimpleResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_product")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("products")
     .update({ status: "cancelled", updated_at: new Date().toISOString() })
@@ -138,6 +143,7 @@ export async function cancelProduct(id: string): Promise<SimpleResult> {
 /** Pulihkan produk yang sebelumnya dibatalkan. */
 export async function restoreProduct(id: string): Promise<SimpleResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_product")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("products")
     .update({ status: "active", updated_at: new Date().toISOString() })

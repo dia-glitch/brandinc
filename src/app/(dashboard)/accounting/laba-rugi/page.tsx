@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { coaCategory } from "@/lib/coa";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { PnlView, type Entry, type Expense, type BrandOpt, type ChannelOpt } from "./pnl-view";
 
 async function getData(): Promise<{ entries: Entry[]; expenses: Expense[]; brands: BrandOpt[]; channels: ChannelOpt[] }> {
@@ -100,9 +102,11 @@ async function getData(): Promise<{ entries: Entry[]; expenses: Expense[]; brand
 
 export default async function LabaRugiPage() {
   const { entries, expenses, brands, channels } = await getData();
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "accounting");
   return (
     <div className="mx-auto max-w-4xl">
-      <PnlView entries={entries} expenses={expenses} brands={brands} channels={channels} />
+      <PnlView entries={entries} expenses={expenses} brands={brands} channels={channels} canEdit={canEdit} />
     </div>
   );
 }

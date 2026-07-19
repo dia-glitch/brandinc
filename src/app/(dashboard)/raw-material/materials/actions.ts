@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true } | { ok: false; error: string };
 function rv() { revalidatePath("/raw-material/materials"); }
@@ -25,6 +27,7 @@ async function nextCode(supabase: ReturnType<typeof createClient>, prefix: strin
 
 export async function createMaterial(input: MaterialInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "rm_create")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   // Ambil kode kategori untuk prefix
   let prefix = "MTR";
   if (input.categoryId) {
@@ -44,6 +47,7 @@ export async function createMaterial(input: MaterialInput): Promise<Result> {
 
 export async function updateMaterial(id: string, input: MaterialInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "rm_create")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("materials").update({
     name: input.name.trim(), brand_id: input.brandId, category_id: input.categoryId, unit: input.unit.trim() || null,
     is_active: input.is_active, updated_at: new Date().toISOString(),
@@ -54,6 +58,7 @@ export async function updateMaterial(id: string, input: MaterialInput): Promise<
 
 export async function deleteMaterial(id: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "rm_create")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("materials").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   rv(); return { ok: true };
@@ -62,6 +67,7 @@ export async function deleteMaterial(id: string): Promise<Result> {
 // ---- Kategori material (nama + kode prefix) ----
 export async function createMaterialCategory(name: string, code: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "rm_create")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("material_categories").insert({
     company_id: DEMO_COMPANY_ID, brand_id: null, name: name.trim(), code: code.trim().toUpperCase() || null, is_active: true, is_demo: false,
   });
@@ -70,12 +76,14 @@ export async function createMaterialCategory(name: string, code: string): Promis
 }
 export async function updateMaterialCategory(id: string, name: string, code: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "rm_create")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("material_categories").update({ name: name.trim(), code: code.trim().toUpperCase() || null, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   rv(); return { ok: true };
 }
 export async function deleteMaterialCategory(id: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "rm_create")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("material_categories").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   rv(); return { ok: true };

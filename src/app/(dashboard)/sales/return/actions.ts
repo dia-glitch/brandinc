@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; code: string } | { ok: false; error: string };
@@ -41,6 +43,7 @@ export type ReturnInput = {
 
 export async function createSalesReturn(input: ReturnInput): Promise<CreateResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "sales_penjualan")) return { ok: false, error: "Anda tidak punya akses untuk membuat return penjualan." };
   if (!input.brandId) return { ok: false, error: "Brand tidak diketahui." };
   const lines = (input.lines ?? []).filter((l) => l.variantId && l.warehouseId && l.qty > 0);
   if (lines.length === 0) return { ok: false, error: "Isi qty retur minimal satu produk." };
@@ -74,6 +77,7 @@ export async function createSalesReturn(input: ReturnInput): Promise<CreateResul
 
 export async function deleteSalesReturn(id: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "sales_penjualan")) return { ok: false, error: "Anda tidak punya akses untuk menghapus return penjualan." };
   const { data: ret } = await supabase.from("sales_returns").select("brand_id").eq("id", id).single();
   const { data: lines } = await supabase.from("sales_return_lines").select("variant_id,warehouse_id,restock,qty,cogm").eq("return_id", id).is("deleted_at", null);
   // Balik: keluarkan lagi stok yang tadi dimasukkan.

@@ -22,11 +22,13 @@ export function ColorDialog({
   defaultParentId,
   parents,
   label,
+  canEdit = true,
 }: {
   color?: ColorData;
   defaultParentId?: string | null;
   parents: ParentOpt[];
   label?: string;
+  canEdit?: boolean;
 }) {
   const isEdit = Boolean(color);
   const router = useRouter();
@@ -72,6 +74,8 @@ export function ColorDialog({
   }
 
   const isParentEdit = isEdit && !color?.parent_id;
+
+  if (!canEdit) return null;
 
   return (
     <>

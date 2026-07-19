@@ -16,7 +16,7 @@ export type Payable = {
 };
 export type AccountOpt = { id: string; name: string; balance: number };
 
-export function APTable({ rows, accounts }: { rows: Payable[]; accounts: AccountOpt[] }) {
+export function APTable({ rows, accounts, canEdit = true }: { rows: Payable[]; accounts: AccountOpt[]; canEdit?: boolean }) {
   const [q, setQ] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -86,7 +86,7 @@ export function APTable({ rows, accounts }: { rows: Payable[]; accounts: Account
                           className={cn("inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold", isOpen ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted")}>
                           <Paperclip className="h-4 w-4" /> Dokumen
                         </button>
-                        {out > 0 && <Button variant="ghost" size="sm" onClick={() => setPay(r)}><Wallet className="h-4 w-4" /> Bayar</Button>}
+                        {canEdit && out > 0 && <Button variant="ghost" size="sm" onClick={() => setPay(r)}><Wallet className="h-4 w-4" /> Bayar</Button>}
                       </div>
                     </td>
                   </tr>

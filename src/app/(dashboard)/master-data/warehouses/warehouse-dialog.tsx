@@ -16,7 +16,7 @@ export type WarehouseData = {
 };
 type Opt = { id: string; name: string };
 
-export function WarehouseDialog({ warehouse, brands }: { warehouse?: WarehouseData; brands: Opt[] }) {
+export function WarehouseDialog({ warehouse, brands, canEdit = true }: { warehouse?: WarehouseData; brands: Opt[]; canEdit?: boolean }) {
   const isEdit = Boolean(warehouse);
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -53,6 +53,8 @@ export function WarehouseDialog({ warehouse, brands }: { warehouse?: WarehouseDa
       close(); router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

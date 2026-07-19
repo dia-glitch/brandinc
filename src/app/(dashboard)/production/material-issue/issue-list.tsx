@@ -12,7 +12,7 @@ import { cancelMaterialIssue } from "./actions";
 export type IssueLine = { id: string; material_name: string | null; unit: string | null; qty: string | number; unit_cost: string | number };
 export type IssueRow = { id: string; code: string; spk_code: string; brand_name: string; warehouse_name: string; issue_date: string | null; status: string; notes: string | null; lines: IssueLine[] };
 
-export function IssueList({ rows }: { rows: IssueRow[] }) {
+export function IssueList({ rows, canEdit = true }: { rows: IssueRow[]; canEdit?: boolean }) {
   const [q, setQ] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const brandOpts = useMemo(() => Array.from(new Set(rows.map((r) => r.brand_name))).filter((b) => b && b !== "—").sort(), [rows]);
@@ -41,7 +41,7 @@ export function IssueList({ rows }: { rows: IssueRow[] }) {
               <th className="py-2.5 pr-4 text-right">Aksi</th>
             </tr>
           </thead>
-          {list.map((r) => <Row key={r.id} row={r} />)}
+          {list.map((r) => <Row key={r.id} row={r} canEdit={canEdit} />)}
         </table>
       </div>
       )}
@@ -49,7 +49,7 @@ export function IssueList({ rows }: { rows: IssueRow[] }) {
   );
 }
 
-function Row({ row }: { row: IssueRow }) {
+function Row({ row, canEdit = true }: { row: IssueRow; canEdit?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -70,7 +70,7 @@ function Row({ row }: { row: IssueRow }) {
         <td className="py-2.5 pr-4 text-right">
           <div className="flex items-center justify-end gap-1">
             <a href={`/print/mi/${row.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground"><Printer className="h-4 w-4" /> Print</a>
-            {!cancelled && (confirm ? (
+            {canEdit && !cancelled && (confirm ? (
               <span className="inline-flex items-center gap-1">
                 <button className="rounded-lg bg-danger px-2 py-1 text-xs font-bold text-white" disabled={pending} onClick={() => startTransition(async () => { await cancelMaterialIssue(row.id); setConfirm(false); router.refresh(); })}>Batalkan?</button>
                 <button className="rounded-lg border border-border px-2 py-1 text-xs font-bold" onClick={() => setConfirm(false)}>Tidak</button>

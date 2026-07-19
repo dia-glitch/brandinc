@@ -14,7 +14,7 @@ export type BrandData = {
   is_active: boolean;
 };
 
-export function BrandDialog({ brand }: { brand?: BrandData }) {
+export function BrandDialog({ brand, canEdit = true }: { brand?: BrandData; canEdit?: boolean }) {
   const isEdit = Boolean(brand);
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -62,6 +62,8 @@ export function BrandDialog({ brand }: { brand?: BrandData }) {
       router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

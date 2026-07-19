@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { SizeDialog, type SizeData } from "./size-dialog";
 
@@ -19,6 +21,9 @@ async function getSizes(): Promise<SizeData[]> {
 export default async function SizesPage() {
   const sizes = await getSizes();
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "master_data");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -29,7 +34,7 @@ export default async function SizesPage() {
             {sizes.length} ukuran. Diurutkan sesuai kolom Urutan (bukan alfabet).
           </p>
         </div>
-        <SizeDialog />
+        <SizeDialog canEdit={canEdit} />
       </div>
 
       {sizes.length === 0 ? (
@@ -65,7 +70,7 @@ export default async function SizesPage() {
                     {s.is_active ? <Badge tone="success">Aktif</Badge> : <Badge tone="neutral">Nonaktif</Badge>}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <SizeDialog size={s} />
+                    <SizeDialog size={s} canEdit={canEdit} />
                   </td>
                 </tr>
               ))}

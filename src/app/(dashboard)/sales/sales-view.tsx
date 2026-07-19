@@ -21,7 +21,7 @@ export type AccountOpt = { id: string; name: string; balance: number };
 
 const SETTLE_LABEL: Record<string, string> = { ar: "AR / Konsinyasi", marketplace: "Marketplace (kas nyusul)" };
 
-export function SalesView({ rows, stock, brands, channels, accounts, isAdmin }: { rows: SaleRow[]; stock: StockOpt[]; brands: BrandOpt[]; channels: ChannelOpt[]; accounts: AccountOpt[]; isAdmin: boolean }) {
+export function SalesView({ rows, stock, brands, channels, accounts, isAdmin, canEdit = true, canReceive = true }: { rows: SaleRow[]; stock: StockOpt[]; brands: BrandOpt[]; channels: ChannelOpt[]; accounts: AccountOpt[]; isAdmin: boolean; canEdit?: boolean; canReceive?: boolean }) {
   const [q, setQ] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [open, setOpen] = useState(false);
@@ -44,10 +44,12 @@ export function SalesView({ rows, stock, brands, channels, accounts, isAdmin }: 
           <h1 className="text-2xl font-extrabold">Penjualan</h1>
           <p className="mt-1 text-sm font-medium text-muted-foreground">Per produk — stok barang jadi turun otomatis, revenue &amp; COGS masuk P&amp;L. Total: <b className="text-foreground">{formatIDR(totalSales)}</b> · Outstanding: <b className="text-danger">{formatIDR(outstanding)}</b></p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setBulk(true)}><Upload className="h-4 w-4" /> Upload Bulk</Button>
-          <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Jual</Button>
-        </div>
+        {canEdit && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setBulk(true)}><Upload className="h-4 w-4" /> Upload Bulk</Button>
+            <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Jual</Button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5">
@@ -77,7 +79,7 @@ export function SalesView({ rows, stock, brands, channels, accounts, isAdmin }: 
               </tr>
             </thead>
             <tbody>
-              {list.map((r) => <SaleRowItem key={r.id} row={r} isAdmin={isAdmin} onReceive={() => setReceive(r)} onEdit={() => setEdit(r)} />)}
+              {list.map((r) => <SaleRowItem key={r.id} row={r} isAdmin={isAdmin} canEdit={canEdit} canReceive={canReceive} onReceive={() => setReceive(r)} onEdit={() => setEdit(r)} />)}
             </tbody>
           </table>
         </div>
@@ -91,7 +93,7 @@ export function SalesView({ rows, stock, brands, channels, accounts, isAdmin }: 
   );
 }
 
-function SaleRowItem({ row, isAdmin, onReceive, onEdit }: { row: SaleRow; isAdmin: boolean; onReceive: () => void; onEdit: () => void }) {
+function SaleRowItem({ row, isAdmin, canEdit, canReceive, onReceive, onEdit }: { row: SaleRow; isAdmin: boolean; canEdit: boolean; canReceive: boolean; onReceive: () => void; onEdit: () => void }) {
   const router = useRouter();
   const [openRow, setOpenRow] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -111,10 +113,10 @@ function SaleRowItem({ row, isAdmin, onReceive, onEdit }: { row: SaleRow; isAdmi
         <td className="py-2.5 pr-3">{row.status === "paid" ? <Badge tone="success">Lunas</Badge> : row.status === "partial" ? <Badge tone="accent">Sebagian</Badge> : <Badge tone="danger">Belum</Badge>}</td>
         <td className="py-2.5 pr-4 text-right">
           <div className="flex items-center justify-end gap-1">
-            {out > 0 && <Button variant="ghost" size="sm" onClick={onReceive}><Wallet className="h-4 w-4" /> Terima</Button>}
-            {isAdmin && <button onClick={onEdit} title="Edit / Adjustment (admin)" className="text-muted-foreground hover:text-foreground"><Pencil className="h-4 w-4" /></button>}
-            {isAdmin && (confirm ? <Button size="sm" variant="danger" disabled={pending} onClick={() => startTransition(async () => { await deleteSale(row.id); router.refresh(); })}>Yakin?</Button>
-              : <button onClick={() => setConfirm(true)} title="Hapus (admin)" className="text-muted-foreground hover:text-danger"><Trash2 className="h-4 w-4" /></button>)}
+            {canReceive && out > 0 && <Button variant="ghost" size="sm" onClick={onReceive}><Wallet className="h-4 w-4" /> Terima</Button>}
+            {canEdit && <button onClick={onEdit} title="Edit / Adjustment" className="text-muted-foreground hover:text-foreground"><Pencil className="h-4 w-4" /></button>}
+            {canEdit && (confirm ? <Button size="sm" variant="danger" disabled={pending} onClick={() => startTransition(async () => { await deleteSale(row.id); router.refresh(); })}>Yakin?</Button>
+              : <button onClick={() => setConfirm(true)} title="Hapus" className="text-muted-foreground hover:text-danger"><Trash2 className="h-4 w-4" /></button>)}
           </div>
         </td>
       </tr>

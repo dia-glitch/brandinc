@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true; id: string; code: string } | { ok: false; error: string };
 type SimpleResult = { ok: true } | { ok: false; error: string };
@@ -47,6 +49,7 @@ async function nextProdPoCode(supabase: ReturnType<typeof createClient>, spkId: 
 
 export async function createProductionPO(input: ProdPOInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_po")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.spkId) return { ok: false, error: "Pilih SPK dulu." };
   const lines = input.lines.filter((l) => l.qty > 0);
   if (lines.length === 0) return { ok: false, error: "Isi qty PO minimal satu baris (> 0)." };
@@ -117,6 +120,7 @@ async function nextInvoiceNo(supabase: ReturnType<typeof createClient>, brandId:
  */
 export async function createProductionInvoice(poId: string): Promise<{ ok: true; invoiceNo: string } | { ok: false; error: string }> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_po")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { data: po } = await supabase.from("production_pos").select("id,brand_id,invoice_no").eq("id", poId).single();
   if (!po) return { ok: false, error: "PO tidak ditemukan." };
   if (po.invoice_no) return { ok: true, invoiceNo: po.invoice_no as string };
@@ -142,6 +146,7 @@ export async function createProductionInvoice(poId: string): Promise<{ ok: true;
 
 export async function cancelProductionPO(id: string): Promise<SimpleResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_po")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("production_pos")
     .update({ status: "cancelled", updated_at: new Date().toISOString() })
@@ -153,6 +158,7 @@ export async function cancelProductionPO(id: string): Promise<SimpleResult> {
 
 export async function restoreProductionPO(id: string): Promise<SimpleResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_po")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("production_pos")
     .update({ status: "open", updated_at: new Date().toISOString() })

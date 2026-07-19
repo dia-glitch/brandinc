@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -23,6 +25,7 @@ export type ReceiveInput = {
  */
 export async function receiveMaterial(input: ReceiveInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "rm_stock")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.materialId) return { ok: false, error: "Pilih material." };
   if (!(input.qty > 0)) return { ok: false, error: "Qty harus lebih dari 0." };
 

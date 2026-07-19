@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true; id: string; code: string } | { ok: false; error: string };
 type SimpleResult = { ok: true } | { ok: false; error: string };
@@ -29,6 +31,7 @@ async function nextIssueNo(supabase: ReturnType<typeof createClient>, spkId: str
 
 export async function createMaterialIssue(input: IssueInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_material_issue")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.spkId) return { ok: false, error: "Pilih SPK dulu." };
   if (!input.warehouseId) return { ok: false, error: "Pilih gudang bahan." };
   const lines = input.lines.filter((l) => l.materialId && l.qty > 0);
@@ -83,6 +86,7 @@ export async function createMaterialIssue(input: IssueInput): Promise<Result> {
 
 export async function cancelMaterialIssue(id: string): Promise<SimpleResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_material_issue")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { data: issue } = await supabase.from("material_issues").select("id,warehouse_id,status").eq("id", id).single();
   if (!issue) return { ok: false, error: "Tidak ditemukan." };
   if (issue.status === "cancelled") return { ok: true };

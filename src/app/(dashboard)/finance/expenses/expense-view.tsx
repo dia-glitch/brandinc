@@ -13,7 +13,7 @@ export type ExpenseRow = { id: string; category: string; date: string | null; am
 export type BrandOpt = { id: string; name: string };
 export type AccountOpt = { id: string; name: string; balance: number };
 
-export function ExpenseView({ rows, categories, brands, accounts, userName = "" }: { rows: ExpenseRow[]; categories: string[]; brands: BrandOpt[]; accounts: AccountOpt[]; userName?: string }) {
+export function ExpenseView({ rows, categories, brands, accounts, userName = "", canEdit = true }: { rows: ExpenseRow[]; categories: string[]; brands: BrandOpt[]; accounts: AccountOpt[]; userName?: string; canEdit?: boolean }) {
   const [q, setQ] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [open, setOpen] = useState(false);
@@ -35,7 +35,7 @@ export function ExpenseView({ rows, categories, brands, accounts, userName = "" 
           <h1 className="text-2xl font-extrabold">Expenses (Manual)</h1>
           <p className="mt-1 text-sm font-medium text-muted-foreground">Biaya lain: marketing, operasional, gaji, dll. Total: <b>{formatIDR(total)}</b> · belum bayar: <b className="text-danger">{formatIDR(unpaid)}</b></p>
         </div>
-        <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Tambah Expense</Button>
+        {canEdit && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Tambah Expense</Button>}
       </div>
 
       <ListFilter q={q} setQ={setQ} brandFilter={brandFilter} setBrandFilter={setBrandFilter} brandOpts={brandOpts} count={list.length} unit="expense" placeholder="Cari kategori / PIC / vendor…" />
@@ -69,8 +69,9 @@ export function ExpenseView({ rows, categories, brands, accounts, userName = "" 
                   <td className="py-2.5 pr-3">{r.status === "paid" ? <Badge tone="success">Lunas</Badge> : <Badge tone="danger">Belum</Badge>}</td>
                   <td className="py-2.5 pr-4 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      {r.status !== "paid" && <Button variant="ghost" size="sm" onClick={() => setPayRow(r)}><Wallet className="h-4 w-4" /> Bayar</Button>}
-                      <DeleteBtn id={r.id} />
+                      {canEdit && r.status !== "paid" && <Button variant="ghost" size="sm" onClick={() => setPayRow(r)}><Wallet className="h-4 w-4" /> Bayar</Button>}
+                      {canEdit && <DeleteBtn id={r.id} />}
+                      {!canEdit && <span className="text-xs font-medium text-muted-foreground">—</span>}
                     </div>
                   </td>
                 </tr>

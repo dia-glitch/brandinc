@@ -11,9 +11,11 @@ type ParentOpt = { id: string; name: string };
 export function CategoryTree({
   categories,
   parents,
+  canEdit = true,
 }: {
   categories: CategoryData[];
   parents: ParentOpt[];
+  canEdit?: boolean;
 }) {
   const tops = categories.filter((c) => !c.parent_id);
   const childrenOf = (id: string) => categories.filter((c) => c.parent_id === id);
@@ -60,8 +62,8 @@ export function CategoryTree({
                 {!top.is_active && <Badge tone="neutral">Nonaktif</Badge>}
               </button>
               <div className="flex items-center gap-1">
-                <CategoryDialog label="Sub-kategori" defaultParentId={top.id} parents={parents} />
-                <CategoryDialog category={top} parents={parents} />
+                <CategoryDialog label="Sub-kategori" defaultParentId={top.id} parents={parents} canEdit={canEdit} />
+                <CategoryDialog category={top} parents={parents} canEdit={canEdit} />
               </div>
             </div>
 
@@ -80,7 +82,7 @@ export function CategoryTree({
                       <span className="font-mono text-xs text-muted-foreground">{ch.code}</span>
                       {!ch.is_active && <Badge tone="neutral">Nonaktif</Badge>}
                       <div className="ml-auto">
-                        <CategoryDialog category={ch} parents={parents} />
+                        <CategoryDialog category={ch} parents={parents} canEdit={canEdit} />
                       </div>
                     </div>
                   ))

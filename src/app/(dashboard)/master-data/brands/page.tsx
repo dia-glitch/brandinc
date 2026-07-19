@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { BrandDialog, type BrandData } from "./brand-dialog";
 
 // Ambil data brand ASLI dari Supabase (menghormati RLS lewat sesi user).
@@ -21,6 +23,9 @@ async function getBrands(): Promise<BrandData[]> {
 export default async function BrandsPage() {
   const brands = await getBrands();
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "master_data");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -30,7 +35,7 @@ export default async function BrandsPage() {
           </p>
           <h1 className="text-2xl font-extrabold">Brand</h1>
         </div>
-        <BrandDialog />
+        <BrandDialog canEdit={canEdit} />
       </div>
 
       <div className="card p-0">
@@ -80,7 +85,7 @@ export default async function BrandsPage() {
                       )}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <BrandDialog brand={b} />
+                      <BrandDialog brand={b} canEdit={canEdit} />
                     </td>
                   </tr>
                 ))}

@@ -29,7 +29,7 @@ export type SPKRow = {
 };
 export type SPKSpec = { name: string | null; type: string | null; values: Record<string, number> | null };
 
-export function SPKList({ rows }: { rows: SPKRow[] }) {
+export function SPKList({ rows, canEdit = true }: { rows: SPKRow[]; canEdit?: boolean }) {
   const [q, setQ] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const brandOpts = useMemo(() => Array.from(new Set(rows.map((r) => r.brand_name))).filter((b) => b && b !== "—").sort(), [rows]);
@@ -58,7 +58,7 @@ export function SPKList({ rows }: { rows: SPKRow[] }) {
               <th className="py-2.5 pr-4 text-right">Aksi</th>
             </tr>
           </thead>
-          {list.map((r) => <SPKRowItem key={r.id} row={r} />)}
+          {list.map((r) => <SPKRowItem key={r.id} row={r} canEdit={canEdit} />)}
         </table>
       </div>
       )}
@@ -66,7 +66,7 @@ export function SPKList({ rows }: { rows: SPKRow[] }) {
   );
 }
 
-function SPKRowItem({ row }: { row: SPKRow }) {
+function SPKRowItem({ row, canEdit = true }: { row: SPKRow; canEdit?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -102,7 +102,7 @@ function SPKRowItem({ row }: { row: SPKRow }) {
           <a href={`/print/spk/${row.id}`} target="_blank" rel="noreferrer" title="Buka detail lengkap & print" className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground">
             <Printer className="h-4 w-4" /> Detail / Print
           </a>
-          {cancelled ? (
+          {canEdit && (cancelled ? (
             <button onClick={doRestore} disabled={pending} className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground">
               <RotateCcw className="h-4 w-4" /> Pulihkan
             </button>
@@ -115,7 +115,7 @@ function SPKRowItem({ row }: { row: SPKRow }) {
             <button onClick={() => setConfirmCancel(true)} className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-danger">
               <Ban className="h-4 w-4" /> Batalkan
             </button>
-          )}
+          ))}
           </div>
         </td>
       </tr>

@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getAccounts } from "@/lib/finance";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { ARView, type ARRow, type ChannelOpt, type BrandOpt, type AccountOpt } from "./ar-view";
 
 async function getData(): Promise<{ rows: ARRow[]; channels: ChannelOpt[]; brands: BrandOpt[]; accounts: AccountOpt[] }> {
@@ -71,9 +73,15 @@ async function getData(): Promise<{ rows: ARRow[]; channels: ChannelOpt[]; brand
 
 export default async function ARPage() {
   const { rows, channels, brands, accounts } = await getData();
+  let canEdit = true, canReceive = true;
+  if (isSupabaseConfigured()) {
+    const role = await getRole(createClient());
+    canEdit = canAct(role, "fin_other");
+    canReceive = canAct(role, "sales_penerimaan");
+  }
   return (
     <div className="mx-auto max-w-7xl">
-      <ARView rows={rows} channels={channels} brands={brands} accounts={accounts} />
+      <ARView rows={rows} channels={channels} brands={brands} accounts={accounts} canEdit={canEdit} canReceive={canReceive} />
     </div>
   );
 }

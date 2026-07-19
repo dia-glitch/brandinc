@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -40,6 +42,7 @@ async function nextSupplierCode(supabase: ReturnType<typeof createClient>): Prom
 
 export async function createSupplier(input: SupplierInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const code = await nextSupplierCode(supabase);
   const { error } = await supabase.from("suppliers").insert({
     company_id: DEMO_COMPANY_ID,
@@ -64,6 +67,7 @@ export async function createSupplier(input: SupplierInput): Promise<Result> {
 
 export async function updateSupplier(id: string, input: SupplierInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("suppliers")
     .update({
@@ -87,6 +91,7 @@ export async function updateSupplier(id: string, input: SupplierInput): Promise<
 
 export async function deleteSupplier(id: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("suppliers")
     .update({ deleted_at: new Date().toISOString() })
@@ -99,6 +104,7 @@ export async function deleteSupplier(id: string): Promise<Result> {
 // ---------- Kategori Supplier ----------
 export async function createSupplierCategory(name: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("supplier_categories").insert({
     company_id: DEMO_COMPANY_ID,
     brand_id: null,
@@ -113,6 +119,7 @@ export async function createSupplierCategory(name: string): Promise<Result> {
 
 export async function updateSupplierCategory(id: string, name: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("supplier_categories")
     .update({ name: name.trim(), updated_at: new Date().toISOString() })
@@ -124,6 +131,7 @@ export async function updateSupplierCategory(id: string, name: string): Promise<
 
 export async function deleteSupplierCategory(id: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("supplier_categories")
     .update({ deleted_at: new Date().toISOString() })

@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { CogmTable, type CogmRow } from "./cogm-table";
 
 async function getData(): Promise<{ rows: CogmRow[] }> {
@@ -73,6 +75,9 @@ async function getData(): Promise<{ rows: CogmRow[] }> {
 export default async function CogmPage() {
   const { rows } = await getData();
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "prod_cogm");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div>
@@ -91,7 +96,7 @@ export default async function CogmPage() {
           </p>
         </div>
       ) : (
-        <CogmTable rows={rows} />
+        <CogmTable rows={rows} canEdit={canEdit} />
       )}
     </div>
   );

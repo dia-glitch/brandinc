@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { ChannelDialog, type ChannelData, type WarehouseOpt } from "./channel-dialog";
 import { SeedButton } from "./seed-button";
@@ -20,6 +22,9 @@ export default async function SalesChannelsPage() {
   const online = channels.filter((c) => c.grup === "online");
   const offline = channels.filter((c) => c.grup === "offline");
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "master_data");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -29,8 +34,8 @@ export default async function SalesChannelsPage() {
           <p className="mt-1 text-sm font-medium text-muted-foreground">{channels.length} channel. Petakan <b>Gudang Sumber</b> agar penjualan channel ini otomatis mengurangi stok gudang tersebut.</p>
         </div>
         <div className="flex items-center gap-2">
-          <SeedButton />
-          <ChannelDialog warehouses={warehouses} />
+          <SeedButton canEdit={canEdit} />
+          <ChannelDialog warehouses={warehouses} canEdit={canEdit} />
         </div>
       </div>
 
@@ -41,15 +46,15 @@ export default async function SalesChannelsPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <Group title="Online" rows={online} warehouses={warehouses} whName={whName} />
-          <Group title="Offline" rows={offline} warehouses={warehouses} whName={whName} />
+          <Group title="Online" rows={online} warehouses={warehouses} whName={whName} canEdit={canEdit} />
+          <Group title="Offline" rows={offline} warehouses={warehouses} whName={whName} canEdit={canEdit} />
         </div>
       )}
     </div>
   );
 }
 
-function Group({ title, rows, warehouses, whName }: { title: string; rows: ChannelData[]; warehouses: WarehouseOpt[]; whName: (id: string | null) => string | null }) {
+function Group({ title, rows, warehouses, whName, canEdit = true }: { title: string; rows: ChannelData[]; warehouses: WarehouseOpt[]; whName: (id: string | null) => string | null; canEdit?: boolean }) {
   if (rows.length === 0) return null;
   return (
     <div>
@@ -72,7 +77,7 @@ function Group({ title, rows, warehouses, whName }: { title: string; rows: Chann
                 <td className="px-5 py-3 font-medium text-muted-foreground">{whName(c.warehouse_id) ?? <span className="text-muted-foreground">— semua —</span>}</td>
                 <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{c.code ?? "—"}</td>
                 <td className="px-5 py-3">{c.is_active ? <Badge tone="success">Aktif</Badge> : <Badge tone="neutral">Nonaktif</Badge>}</td>
-                <td className="px-5 py-3 text-right"><ChannelDialog channel={c} warehouses={warehouses} /></td>
+                <td className="px-5 py-3 text-right"><ChannelDialog channel={c} warehouses={warehouses} canEdit={canEdit} /></td>
               </tr>
             ))}
           </tbody>

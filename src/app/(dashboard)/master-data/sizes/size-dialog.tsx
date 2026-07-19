@@ -14,7 +14,7 @@ export type SizeData = {
   is_active: boolean;
 };
 
-export function SizeDialog({ size }: { size?: SizeData }) {
+export function SizeDialog({ size, canEdit = true }: { size?: SizeData; canEdit?: boolean }) {
   const isEdit = Boolean(size);
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -62,6 +62,8 @@ export function SizeDialog({ size }: { size?: SizeData }) {
       router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

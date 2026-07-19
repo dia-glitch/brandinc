@@ -11,7 +11,7 @@ import { processRefund } from "./actions";
 export type RefundRow = { id: string; code: string; brand: string; date: string | null; amount: number; bankName: string; accountNo: string; accountHolder: string; status: string; paidAt: string | null };
 export type AccountOpt = { id: string; name: string; balance: number };
 
-export function RefundView({ rows, accounts }: { rows: RefundRow[]; accounts: AccountOpt[] }) {
+export function RefundView({ rows, accounts, canEdit = true }: { rows: RefundRow[]; accounts: AccountOpt[]; canEdit?: boolean }) {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("pending");
   const [proc, setProc] = useState<RefundRow | null>(null);
@@ -60,7 +60,7 @@ export function RefundView({ rows, accounts }: { rows: RefundRow[]; accounts: Ac
                   <td className="py-2.5 pr-3"><span className="inline-flex items-center gap-1.5"><Landmark className="h-3.5 w-3.5 text-muted-foreground" />{r.bankName || "—"} · {r.accountNo || "—"} · a.n. {r.accountHolder || "—"}</span></td>
                   <td className="py-2.5 pr-3 text-right tabular-nums">{formatIDR(r.amount)}</td>
                   <td className="py-2.5 pr-3">{r.status === "paid" ? <Badge tone="success">Ditransfer</Badge> : <Badge tone="danger">Pending</Badge>}</td>
-                  <td className="py-2.5 pr-4 text-right">{r.status === "pending" ? <Button size="sm" onClick={() => setProc(r)}><Wallet className="h-4 w-4" /> Proses Transfer</Button> : <span className="text-xs font-medium text-muted-foreground">{r.paidAt ?? "—"}</span>}</td>
+                  <td className="py-2.5 pr-4 text-right">{r.status === "pending" ? (canEdit ? <Button size="sm" onClick={() => setProc(r)}><Wallet className="h-4 w-4" /> Proses Transfer</Button> : <span className="text-xs font-medium text-muted-foreground">—</span>) : <span className="text-xs font-medium text-muted-foreground">{r.paidAt ?? "—"}</span>}</td>
                 </tr>
               ))}
             </tbody>

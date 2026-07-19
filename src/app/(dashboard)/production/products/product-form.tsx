@@ -13,7 +13,7 @@ export type ColorSub = { id: string; name: string; parentId: string };
 export type SizeOpt = { id: string; name: string };
 
 export function ProductForm({
-  brands, catParents, catSubs, colorParents, colorSubs, sizes,
+  brands, catParents, catSubs, colorParents, colorSubs, sizes, canEdit = true,
 }: {
   brands: BrandOpt[];
   catParents: ParentOpt[];
@@ -21,6 +21,7 @@ export function ProductForm({
   colorParents: ParentOpt[];
   colorSubs: ColorSub[];
   sizes: SizeOpt[];
+  canEdit?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -47,6 +48,8 @@ export function ProductForm({
     return [rawName.trim(), cat?.name, color?.name].filter(Boolean).join(" ");
   }, [rawName, cat, color]);
   const previewSku = brand && cat ? `${brand.code.toUpperCase()}-${cat.code.toUpperCase()}###-<ukuran>` : "—";
+
+  if (!canEdit) return null;
 
   function reset() {
     setBrandId(""); setRawName(""); setCatParentId(""); setCategoryId("");

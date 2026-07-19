@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { StockView, type StockRow, type Opt } from "./stock-view";
 
 async function getData(): Promise<{ rows: StockRow[]; categories: Opt[]; brands: Opt[] }> {
@@ -53,10 +55,12 @@ async function getData(): Promise<{ rows: StockRow[]; categories: Opt[]; brands:
 
 export default async function RawMaterialPage() {
   const { rows, categories, brands } = await getData();
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "rm_stock");
 
   return (
     <div className="mx-auto max-w-7xl">
-      <StockView rows={rows} categories={categories} brands={brands} />
+      <StockView rows={rows} categories={categories} brands={brands} canEdit={canEdit} />
     </div>
   );
 }

@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
 import { getAccountInfo, idr } from "@/lib/finance";
-import { getUserName } from "@/lib/roles";
+import { getUserName, getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -25,6 +26,7 @@ function rv() {
 /* ---------------- Kas / Bank ---------------- */
 export async function createAccount(input: { name: string; kind: string; bankName: string; accountNo: string; accountHolder: string; opening: number }): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.name.trim()) return { ok: false, error: "Nama akun wajib diisi." };
   const { error } = await supabase.from("cash_accounts").insert({
     company_id: DEMO_COMPANY_ID, brand_id: null, name: input.name.trim(), kind: input.kind || "bank",
@@ -35,6 +37,7 @@ export async function createAccount(input: { name: string; kind: string; bankNam
 }
 export async function updateAccount(id: string, input: { name: string; kind: string; bankName: string; accountNo: string; accountHolder: string; opening: number }): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("cash_accounts").update({
     name: input.name.trim(), kind: input.kind, bank_name: input.bankName.trim() || null, account_no: input.accountNo.trim() || null,
     account_holder: input.accountHolder.trim() || null, opening_balance: input.opening || 0, updated_at: new Date().toISOString(),
@@ -44,6 +47,7 @@ export async function updateAccount(id: string, input: { name: string; kind: str
 }
 export async function deleteAccount(id: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("cash_accounts").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   rv(); return { ok: true };
@@ -51,6 +55,7 @@ export async function deleteAccount(id: string): Promise<Result> {
 /** Setoran / top-up saldo (mutasi masuk). */
 export async function topupAccount(input: { accountId: string; date: string; amount: number; notes: string }): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.accountId) return { ok: false, error: "Pilih akun." };
   if (!(input.amount > 0)) return { ok: false, error: "Nominal harus > 0." };
   const { error } = await supabase.from("payments").insert({
@@ -68,6 +73,7 @@ export async function topupAccount(input: { accountId: string; date: string; amo
  */
 export async function recordCashIn(input: { accountId: string; source: string; channel: string; date: string; amount: number; notes: string }): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.accountId) return { ok: false, error: "Pilih akun." };
   if (!(input.amount > 0)) return { ok: false, error: "Nominal harus > 0." };
   const map: Record<string, { refType: string; method: string }> = {
@@ -94,6 +100,7 @@ export async function recordCashIn(input: { accountId: string; source: string; c
  */
 export async function transferBook(input: { fromId: string; toId: string; amount: number; date: string; method: string; notes: string }): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.fromId || !input.toId) return { ok: false, error: "Pilih akun asal & tujuan." };
   if (input.fromId === input.toId) return { ok: false, error: "Akun asal dan tujuan tidak boleh sama." };
   if (!(input.amount > 0)) return { ok: false, error: "Nominal harus > 0." };
@@ -112,6 +119,7 @@ export async function transferBook(input: { fromId: string; toId: string; amount
 /* ---------------- Bayar Hutang (AP) ---------------- */
 export async function payInvoice(input: { refType: string; invoiceNo: string; accountId: string; date: string; amount: number; method: string; notes: string }): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.accountId) return { ok: false, error: "Pilih akun kas/bank." };
   if (!(input.amount > 0)) return { ok: false, error: "Nominal bayar harus > 0." };
   const short = await assertFunds(supabase, input.accountId, input.amount);
@@ -127,6 +135,7 @@ export async function payInvoice(input: { refType: string; invoiceNo: string; ac
 /* ---------------- Expenses ---------------- */
 export async function createExpense(input: { category: string; date: string; amount: number; payee: string; brandId: string | null; notes: string; vendorBank?: string; vendorAccountNo?: string; vendorAccountHolder?: string }): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.category) return { ok: false, error: "Pilih kategori." };
   if (!(input.amount > 0)) return { ok: false, error: "Nominal harus > 0." };
   const requester = await getUserName(supabase); // Pemohon otomatis = user login
@@ -141,6 +150,7 @@ export async function createExpense(input: { category: string; date: string; amo
 }
 export async function deleteExpense(id: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("expenses").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   rv(); return { ok: true };
@@ -148,6 +158,7 @@ export async function deleteExpense(id: string): Promise<Result> {
 /** Bayar expense → catat mutasi keluar + tandai lunas. */
 export async function payExpense(input: { expenseId: string; amount: number; accountId: string; date: string; method: string }): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.accountId) return { ok: false, error: "Pilih akun kas/bank." };
   const shortExp = await assertFunds(supabase, input.accountId, input.amount);
   if (shortExp) return { ok: false, error: shortExp };

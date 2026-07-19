@@ -31,7 +31,7 @@ async function uploadFile(file: File): Promise<Attachment | null> {
   } catch { return null; }
 }
 
-export function CPView({ rows, materials, warehouses, cashAdvances }: { rows: CPRow[]; materials: MaterialOpt[]; warehouses: WarehouseOpt[]; cashAdvances: CashAdvanceOpt[] }) {
+export function CPView({ rows, materials, warehouses, cashAdvances, canEdit = true }: { rows: CPRow[]; materials: MaterialOpt[]; warehouses: WarehouseOpt[]; cashAdvances: CashAdvanceOpt[]; canEdit?: boolean }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const query = q.trim().toLowerCase();
@@ -45,7 +45,7 @@ export function CPView({ rows, materials, warehouses, cashAdvances }: { rows: CP
           <h1 className="text-2xl font-extrabold">Pembelian Tunai</h1>
           <p className="mt-1 text-sm font-medium text-muted-foreground">Beli bahan tunai pakai dana Cash Advance (nota). Material masuk stok &amp; update harga rata-rata, tanpa masuk Hutang. Nilainya otomatis jadi realisasi saat settlement cash advance.</p>
         </div>
-        <Button size="sm" onClick={() => setOpen(true)} disabled={cashAdvances.length === 0}><Plus className="h-4 w-4" /> Catat Pembelian</Button>
+        {canEdit && <Button size="sm" onClick={() => setOpen(true)} disabled={cashAdvances.length === 0}><Plus className="h-4 w-4" /> Catat Pembelian</Button>}
       </div>
 
       {cashAdvances.length === 0 && (
@@ -76,22 +76,22 @@ export function CPView({ rows, materials, warehouses, cashAdvances }: { rows: CP
                 <th className="py-2.5 pr-3">Gudang</th>
                 <th className="py-2.5 pr-3">Tgl</th>
                 <th className="py-2.5 pr-3 text-right">Total</th>
-                <th className="py-2.5 pr-4 text-right">Aksi</th>
+                {canEdit && <th className="py-2.5 pr-4 text-right">Aksi</th>}
               </tr>
             </thead>
             <tbody>
-              {list.map((r) => <CPRowItem key={r.id} row={r} />)}
+              {list.map((r) => <CPRowItem key={r.id} row={r} canEdit={canEdit} />)}
             </tbody>
           </table>
         </div>
       )}
 
-      {open && <CPForm materials={materials} warehouses={warehouses} cashAdvances={cashAdvances} onClose={() => setOpen(false)} />}
+      {canEdit && open && <CPForm materials={materials} warehouses={warehouses} cashAdvances={cashAdvances} onClose={() => setOpen(false)} />}
     </div>
   );
 }
 
-function CPRowItem({ row }: { row: CPRow }) {
+function CPRowItem({ row, canEdit = true }: { row: CPRow; canEdit?: boolean }) {
   const router = useRouter();
   const [openRow, setOpenRow] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -105,9 +105,11 @@ function CPRowItem({ row }: { row: CPRow }) {
         <td className="py-2.5 pr-3 font-medium text-muted-foreground">{row.warehouse}</td>
         <td className="py-2.5 pr-3 font-medium text-muted-foreground">{row.date ?? "—"}</td>
         <td className="py-2.5 pr-3 text-right tabular-nums">{formatIDR(row.total)}</td>
-        <td className="py-2.5 pr-4 text-right">
-          <DelBtn pending={pending} onDel={() => startTransition(async () => { await deleteCashPurchase(row.id); router.refresh(); })} />
-        </td>
+        {canEdit && (
+          <td className="py-2.5 pr-4 text-right">
+            <DelBtn pending={pending} onDel={() => startTransition(async () => { await deleteCashPurchase(row.id); router.refresh(); })} />
+          </td>
+        )}
       </tr>
       {openRow && (
         <tr className="bg-muted/20">

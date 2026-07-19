@@ -17,7 +17,7 @@ function Swatch({ hex, size = "h-6 w-6" }: { hex: string | null; size?: string }
   );
 }
 
-export function ColorTree({ colors, parents }: { colors: ColorData[]; parents: ParentOpt[] }) {
+export function ColorTree({ colors, parents, canEdit = true }: { colors: ColorData[]; parents: ParentOpt[]; canEdit?: boolean }) {
   const tops = colors.filter((c) => !c.parent_id);
   const childrenOf = (id: string) => colors.filter((c) => c.parent_id === id);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -53,8 +53,8 @@ export function ColorTree({ colors, parents }: { colors: ColorData[]; parents: P
                 {!top.is_active && <Badge tone="neutral">Nonaktif</Badge>}
               </button>
               <div className="flex items-center gap-1">
-                <ColorDialog label="Sub Colour" defaultParentId={top.id} parents={parents} />
-                <ColorDialog color={top} parents={parents} />
+                <ColorDialog label="Sub Colour" defaultParentId={top.id} parents={parents} canEdit={canEdit} />
+                <ColorDialog color={top} parents={parents} canEdit={canEdit} />
               </div>
             </div>
 
@@ -69,7 +69,7 @@ export function ColorTree({ colors, parents }: { colors: ColorData[]; parents: P
                         <Swatch hex={ch.hex} size="h-5 w-5" />
                         <span className="flex-1 truncate font-semibold">{ch.name}</span>
                         {!ch.is_active && <Badge tone="neutral">Off</Badge>}
-                        <ColorDialog color={ch} parents={parents} />
+                        <ColorDialog color={ch} parents={parents} canEdit={canEdit} />
                       </div>
                     ))}
                   </div>

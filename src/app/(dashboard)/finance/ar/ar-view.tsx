@@ -16,7 +16,7 @@ export type ChannelOpt = { id: string; name: string };
 export type BrandOpt = { id: string; name: string };
 export type AccountOpt = { id: string; name: string; balance: number };
 
-export function ARView({ rows, channels, brands, accounts }: { rows: ARRow[]; channels: ChannelOpt[]; brands: BrandOpt[]; accounts: AccountOpt[] }) {
+export function ARView({ rows, channels, brands, accounts, canEdit = true, canReceive = true }: { rows: ARRow[]; channels: ChannelOpt[]; brands: BrandOpt[]; accounts: AccountOpt[]; canEdit?: boolean; canReceive?: boolean }) {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [open, setOpen] = useState(false);
@@ -50,7 +50,7 @@ export function ARView({ rows, channels, brands, accounts }: { rows: ARRow[]; ch
         </div>
         <div className="flex gap-2">
           <button onClick={download} disabled={list.length === 0} className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-surface px-4 text-sm font-bold hover:bg-muted disabled:opacity-50"><Download className="h-4 w-4" /> Download</button>
-          <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Buat Tagihan AR</Button>
+          {canEdit && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Buat Tagihan AR</Button>}
         </div>
       </div>
 
@@ -102,8 +102,8 @@ export function ARView({ rows, channels, brands, accounts }: { rows: ARRow[]; ch
                     <td className="py-2.5 pr-4 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <a href={r.source === "sales" ? `/print/sales-ar/${r.id}` : `/print/ar/${r.id}`} target="_blank" rel="noreferrer" title="Cetak invoice AR" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-bold text-muted-foreground hover:bg-muted"><Printer className="h-4 w-4" /> Invoice</a>
-                        {out > 0 && <Button variant="ghost" size="sm" onClick={() => setReceive(r)}><Wallet className="h-4 w-4" /> Terima</Button>}
-                        {r.source === "manual" ? <DelBtn onDel={() => deleteReceivable(r.id)} /> : <span className="text-xs font-medium text-muted-foreground" title="Kelola di modul Sales">di Sales</span>}
+                        {canReceive && out > 0 && <Button variant="ghost" size="sm" onClick={() => setReceive(r)}><Wallet className="h-4 w-4" /> Terima</Button>}
+                        {canEdit && r.source === "manual" ? <DelBtn onDel={() => deleteReceivable(r.id)} /> : r.source === "sales" ? <span className="text-xs font-medium text-muted-foreground" title="Kelola di modul Sales">di Sales</span> : null}
                       </div>
                     </td>
                   </tr>

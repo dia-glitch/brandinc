@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { ReturnView, type OrderOpt, type ReturnRow, type WarehouseOpt } from "./return-view";
 
 async function getData() {
@@ -50,9 +52,11 @@ async function getData() {
 
 export default async function SalesReturnPage() {
   const { orders, rows, damageWarehouses } = await getData();
+  let canEdit = true;
+  if (isSupabaseConfigured()) { const role = await getRole(createClient()); canEdit = canAct(role, "sales_penjualan"); }
   return (
     <div className="mx-auto max-w-7xl">
-      <ReturnView orders={orders} rows={rows} damageWarehouses={damageWarehouses} />
+      <ReturnView orders={orders} rows={rows} damageWarehouses={damageWarehouses} canEdit={canEdit} />
     </div>
   );
 }

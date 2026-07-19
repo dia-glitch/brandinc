@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true } | { ok: false; error: string };
 function rv() { revalidatePath("/accounting/laba-rugi"); revalidatePath("/accounting"); }
@@ -14,6 +16,7 @@ export type SalesEntryInput = {
 
 export async function createSalesEntry(input: SalesEntryInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "accounting")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.brandId) return { ok: false, error: "Pilih brand." };
   if (!(input.gross > 0)) return { ok: false, error: "Penjualan bruto harus > 0." };
   const { error } = await supabase.from("sales_entries").insert({
@@ -27,6 +30,7 @@ export async function createSalesEntry(input: SalesEntryInput): Promise<Result> 
 
 export async function deleteSalesEntry(id: string): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "accounting")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("sales_entries").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   rv(); return { ok: true };

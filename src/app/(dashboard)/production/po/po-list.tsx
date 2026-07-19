@@ -35,7 +35,7 @@ export type ProdPORow = {
   lines: ProdPOLine[];
 };
 
-export function ProdPOList({ rows }: { rows: ProdPORow[] }) {
+export function ProdPOList({ rows, canEdit = true }: { rows: ProdPORow[]; canEdit?: boolean }) {
   const [q, setQ] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const brandOpts = useMemo(() => Array.from(new Set(rows.map((r) => r.brand_name))).filter((b) => b && b !== "—").sort(), [rows]);
@@ -64,7 +64,7 @@ export function ProdPOList({ rows }: { rows: ProdPORow[] }) {
               <th className="py-2.5 pr-4 text-right">Aksi</th>
             </tr>
           </thead>
-          {list.map((r) => <ProdPORowItem key={r.id} row={r} />)}
+          {list.map((r) => <ProdPORowItem key={r.id} row={r} canEdit={canEdit} />)}
         </table>
       </div>
       )}
@@ -72,7 +72,7 @@ export function ProdPOList({ rows }: { rows: ProdPORow[] }) {
   );
 }
 
-function ProdPORowItem({ row }: { row: ProdPORow }) {
+function ProdPORowItem({ row, canEdit = true }: { row: ProdPORow; canEdit?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -105,7 +105,7 @@ function ProdPORowItem({ row }: { row: ProdPORow }) {
               className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground">
               <Printer className="h-4 w-4" /> Detail / Print
             </a>
-            {cancelled ? (
+            {canEdit && (cancelled ? (
               <Button variant="ghost" size="icon" disabled={pending} title="Aktifkan lagi"
                 onClick={() => startTransition(async () => { await restoreProductionPO(row.id); router.refresh(); })}>
                 <RotateCcw className="h-4 w-4" />
@@ -120,7 +120,7 @@ function ProdPORowItem({ row }: { row: ProdPORow }) {
               ) : (
                 <Button variant="ghost" size="icon" onClick={() => setConfirmCancel(true)} title="Batalkan PO"><Ban className="h-4 w-4" /></Button>
               )
-            )}
+            ))}
           </div>
         </td>
       </tr>

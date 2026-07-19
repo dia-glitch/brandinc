@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { SupplierDialog, type SupplierData } from "./supplier-dialog";
 import { CategoryManager, type SupplierCategory } from "./category-manager";
@@ -25,6 +27,9 @@ export default async function SuppliersPage() {
   const { suppliers, categories } = await getData();
   const catName = (id: string | null) => categories.find((c) => c.id === id)?.name ?? "—";
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "master_data");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -34,8 +39,8 @@ export default async function SuppliersPage() {
           <p className="mt-1 text-sm font-medium text-muted-foreground">{suppliers.length} supplier terdaftar.</p>
         </div>
         <div className="flex gap-2.5">
-          <CategoryManager categories={categories} />
-          <SupplierDialog categories={categories} />
+          <CategoryManager categories={categories} canEdit={canEdit} />
+          <SupplierDialog categories={categories} canEdit={canEdit} />
         </div>
       </div>
 
@@ -85,7 +90,7 @@ export default async function SuppliersPage() {
                       {s.is_active ? <Badge tone="success">Aktif</Badge> : <Badge tone="neutral">Nonaktif</Badge>}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <SupplierDialog supplier={s} categories={categories} />
+                      <SupplierDialog supplier={s} categories={categories} canEdit={canEdit} />
                     </td>
                   </tr>
                 ))}

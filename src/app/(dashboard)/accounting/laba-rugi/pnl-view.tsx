@@ -20,7 +20,7 @@ function monthLabel(m: string) {
   return `${names[Number(mo) - 1] ?? mo} ${y}`;
 }
 
-export function PnlView({ entries, expenses, brands, channels }: { entries: Entry[]; expenses: Expense[]; brands: BrandOpt[]; channels: ChannelOpt[] }) {
+export function PnlView({ entries, expenses, brands, channels, canEdit = true }: { entries: Entry[]; expenses: Expense[]; brands: BrandOpt[]; channels: ChannelOpt[]; canEdit?: boolean }) {
   const [scope, setScope] = useState(""); // "" = Group; else brandId
   const [month, setMonth] = useState(thisMonth());
   const [open, setOpen] = useState(false);
@@ -77,7 +77,7 @@ export function PnlView({ entries, expenses, brands, channels }: { entries: Entr
         </div>
         <div className="flex gap-2">
           <button onClick={download} className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-surface px-4 text-sm font-bold hover:bg-muted"><Download className="h-4 w-4" /> Download</button>
-          <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Input Penjualan</Button>
+          {canEdit && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Input Penjualan</Button>}
         </div>
       </div>
 
@@ -120,14 +120,14 @@ export function PnlView({ entries, expenses, brands, channels }: { entries: Entr
         {isGroup && <div className="card px-4 py-2.5"><p className="text-xs font-bold uppercase text-muted-foreground">Beban Induk (Umum)</p><p className="text-lg font-black tabular-nums">{formatIDR(indukTotal)}</p></div>}
       </div>
 
-      <EntryList entries={ent} brands={brands} />
+      <EntryList entries={ent} brands={brands} canEdit={canEdit} />
 
       {open && <SalesForm brands={brands} channels={channels} defaultBrand={scope} onClose={() => setOpen(false)} />}
     </div>
   );
 }
 
-function EntryList({ entries, brands }: { entries: Entry[]; brands: BrandOpt[] }) {
+function EntryList({ entries, brands, canEdit = true }: { entries: Entry[]; brands: BrandOpt[]; canEdit?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const brandName = (id: string | null) => brands.find((b) => b.id === id)?.name ?? "—";
@@ -151,7 +151,7 @@ function EntryList({ entries, brands }: { entries: Entry[]; brands: BrandOpt[] }
                 <td className="py-2.5 pr-3 text-right tabular-nums">{formatIDR(e.gross)}</td>
                 <td className="py-2.5 pr-3 text-right tabular-nums text-muted-foreground">{formatIDR(e.discount)}</td>
                 <td className="py-2.5 pr-3 text-right tabular-nums text-muted-foreground">{formatIDR(e.hpp)}</td>
-                <td className="py-2.5 pr-4 text-right"><button disabled={pending} onClick={() => startTransition(async () => { await deleteSalesEntry(e.id); router.refresh(); })} className="text-muted-foreground hover:text-danger"><Trash2 className="h-4 w-4" /></button></td>
+                <td className="py-2.5 pr-4 text-right">{canEdit && <button disabled={pending} onClick={() => startTransition(async () => { await deleteSalesEntry(e.id); router.refresh(); })} className="text-muted-foreground hover:text-danger"><Trash2 className="h-4 w-4" /></button>}</td>
               </tr>
             ))}
           </tbody>

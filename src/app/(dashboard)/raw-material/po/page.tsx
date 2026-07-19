@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { POForm, type BrandOpt, type SupplierOpt, type MaterialOpt } from "@/app/(dashboard)/purchasing/po-form";
 import { POList, type PORow } from "@/app/(dashboard)/purchasing/po-list";
 
@@ -52,6 +54,8 @@ async function getData() {
 
 export default async function RawMaterialPOPage() {
   const { rows, brands, suppliers, materials } = await getData();
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "rm_po");
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -63,7 +67,7 @@ export default async function RawMaterialPOPage() {
             {rows.length} PO. Beli bahan ke supplier → terima dari PO → stok masuk (moving average). Semua dalam satu alur di sini.
           </p>
         </div>
-        <POForm brands={brands} suppliers={suppliers} materials={materials} />
+        <POForm brands={brands} suppliers={suppliers} materials={materials} canEdit={canEdit} />
       </div>
 
       {rows.length === 0 ? (
@@ -74,7 +78,7 @@ export default async function RawMaterialPOPage() {
           </p>
         </div>
       ) : (
-        <POList rows={rows} />
+        <POList rows={rows} canEdit={canEdit} />
       )}
 
       <p className="text-xs font-medium text-muted-foreground">

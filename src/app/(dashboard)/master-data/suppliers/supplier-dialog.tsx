@@ -23,7 +23,7 @@ export type SupplierData = {
 
 type CatOpt = { id: string; name: string };
 
-export function SupplierDialog({ supplier, categories }: { supplier?: SupplierData; categories: CatOpt[] }) {
+export function SupplierDialog({ supplier, categories, canEdit = true }: { supplier?: SupplierData; categories: CatOpt[]; canEdit?: boolean }) {
   const isEdit = Boolean(supplier);
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -77,6 +77,8 @@ export function SupplierDialog({ supplier, categories }: { supplier?: SupplierDa
       router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

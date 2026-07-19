@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { CPView, type CPRow, type MaterialOpt, type WarehouseOpt, type CashAdvanceOpt } from "./cp-view";
 import type { Attachment } from "./actions";
 
@@ -50,9 +52,11 @@ async function getData(): Promise<{ rows: CPRow[]; materials: MaterialOpt[]; war
 
 export default async function CashPurchasePage() {
   const { rows, materials, warehouses, cashAdvances } = await getData();
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "rm_cash");
   return (
     <div className="mx-auto max-w-7xl">
-      <CPView rows={rows} materials={materials} warehouses={warehouses} cashAdvances={cashAdvances} />
+      <CPView rows={rows} materials={materials} warehouses={warehouses} cashAdvances={cashAdvances} canEdit={canEdit} />
     </div>
   );
 }

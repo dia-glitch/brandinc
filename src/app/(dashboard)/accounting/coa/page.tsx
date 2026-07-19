@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { COA_TYPE_LABEL, COA_TYPE_ORDER } from "@/lib/coa";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { CoaDialog, type CoaData } from "./coa-dialog";
 import { SeedButton } from "./seed-button";
 
@@ -13,6 +15,8 @@ async function getData(): Promise<CoaData[]> {
 
 export default async function CoaPage() {
   const accounts = await getData();
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "accounting");
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -22,7 +26,7 @@ export default async function CoaPage() {
           <h1 className="text-2xl font-extrabold">Bagan Akun (Chart of Accounts)</h1>
           <p className="mt-1 text-sm font-medium text-muted-foreground">{accounts.length} akun. Fondasi untuk jurnal &amp; laporan. Bisa ditambah/edit sendiri.</p>
         </div>
-        <div className="flex items-center gap-2"><SeedButton /><CoaDialog /></div>
+        {canEdit && <div className="flex items-center gap-2"><SeedButton /><CoaDialog /></div>}
       </div>
 
       {accounts.length === 0 ? (
@@ -45,7 +49,7 @@ export default async function CoaPage() {
                         <tr key={a.id} className="border-t border-border first:border-t-0 font-semibold hover:bg-muted/50">
                           <td className="px-5 py-2.5 font-mono text-xs text-muted-foreground w-20">{a.code}</td>
                           <td className="px-5 py-2.5">{a.name}</td>
-                          <td className="px-5 py-2.5 text-right"><CoaDialog account={a} /></td>
+                          <td className="px-5 py-2.5 text-right">{canEdit && <CoaDialog account={a} />}</td>
                         </tr>
                       ))}
                     </tbody>

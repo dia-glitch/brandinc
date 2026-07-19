@@ -19,7 +19,7 @@ type Opt = { id: string; name: string };
 
 const UNITS = ["Meter", "Yard", "Pcs", "Cone", "Roll", "Kg", "Gram", "Lusin", "Set"];
 
-export function MaterialDialog({ material, categories, brands }: { material?: MaterialData; categories: Opt[]; brands: Opt[] }) {
+export function MaterialDialog({ material, categories, brands, canEdit = true }: { material?: MaterialData; categories: Opt[]; brands: Opt[]; canEdit?: boolean }) {
   const isEdit = Boolean(material);
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -58,6 +58,8 @@ export function MaterialDialog({ material, categories, brands }: { material?: Ma
       close(); router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

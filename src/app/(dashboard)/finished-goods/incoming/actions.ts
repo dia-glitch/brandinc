@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true; id: string; code: string } | { ok: false; error: string };
 type SimpleResult = { ok: true } | { ok: false; error: string };
@@ -95,6 +97,7 @@ export type InboundInput = {
 
 export async function createInbound(input: InboundInput): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fg_incoming_qc")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   if (!input.brandId) return { ok: false, error: "Brand tidak diketahui dari PO." };
   const lines = input.lines.filter((l) => l.qtyIncoming > 0);
   if (lines.length === 0) return { ok: false, error: "Isi qty incoming minimal satu baris." };
@@ -139,6 +142,7 @@ export async function submitQC(
   receiptId: string, goodWarehouseId: string, damageWarehouseId: string | null, lines: QCLineInput[]
 ): Promise<SimpleResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fg_incoming_qc")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   for (const l of lines) {
     const sum = l.qtyGood + l.qtyRepair + l.qtyDamage;
     // Semua pcs harus dipertanggungjawabkan: Good + Repair + Damage = Incoming.
@@ -207,6 +211,7 @@ export async function submitQC(
  */
 export async function createGrnInvoice(receiptId: string): Promise<{ ok: true; invoiceNo: string } | { ok: false; error: string }> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fg_incoming_qc")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { data: r } = await supabase.from("fg_receipts").select("id,po_id,brand_id,status,invoice_no").eq("id", receiptId).single();
   if (!r) return { ok: false, error: "GRN tidak ditemukan." };
   if (r.status === "inbound") return { ok: false, error: "QC batch ini belum diproses." };
@@ -237,6 +242,7 @@ export type RepairReturnLine = { sku: string; qtyBalik: number };
 
 export async function receiveRepair(receiptId: string, balik: RepairReturnLine[]): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fg_incoming_qc")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { data: src } = await supabase
     .from("fg_receipts").select("id,po_id,spk_id,brand_id,supplier_id,status").eq("id", receiptId).single();
   if (!src) return { ok: false, error: "Dokumen tidak ditemukan." };

@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 import { WarehouseDialog, type WarehouseData } from "./warehouse-dialog";
 import { kindLabel } from "./kinds";
@@ -23,6 +25,9 @@ export default async function WarehousesPage() {
   const { warehouses, brands } = await getData();
   const brandName = (id: string | null) => brands.find((b) => b.id === id)?.name ?? "Umum";
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "master_data");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -31,7 +36,7 @@ export default async function WarehousesPage() {
           <h1 className="text-2xl font-extrabold">Gudang</h1>
           <p className="mt-1 text-sm font-medium text-muted-foreground">{warehouses.length} gudang. Dipakai untuk penerimaan barang jadi, damage, &amp; bahan baku.</p>
         </div>
-        <WarehouseDialog brands={brands} />
+        <WarehouseDialog brands={brands} canEdit={canEdit} />
       </div>
 
       {warehouses.length === 0 ? (
@@ -58,7 +63,7 @@ export default async function WarehousesPage() {
                   <td className="px-5 py-3"><Badge tone={w.kind === "damage" ? "danger" : "neutral"}>{kindLabel(w.kind)}</Badge></td>
                   <td className="px-5 py-3 font-medium text-muted-foreground">{brandName(w.brand_id)}</td>
                   <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{w.code ?? "—"}</td>
-                  <td className="px-5 py-3 text-right"><WarehouseDialog warehouse={w} brands={brands} /></td>
+                  <td className="px-5 py-3 text-right"><WarehouseDialog warehouse={w} brands={brands} canEdit={canEdit} /></td>
                 </tr>
               ))}
             </tbody>

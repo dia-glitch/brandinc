@@ -26,7 +26,7 @@ const sumLines = (r: IncRow, f: (l: IncLine) => number) => r.lines.reduce((a, l)
 
 type Group = { poId: string; poCode: string; brand: string; supplier: string; product: string; batches: IncRow[] };
 
-export function IncomingList({ rows, warehouses }: { rows: IncRow[]; warehouses: WarehouseOpt[] }) {
+export function IncomingList({ rows, warehouses, canEdit = true }: { rows: IncRow[]; warehouses: WarehouseOpt[]; canEdit?: boolean }) {
   const [brandFilter, setBrandFilter] = useState("");
   const [q, setQ] = useState("");
 
@@ -100,7 +100,7 @@ export function IncomingList({ rows, warehouses }: { rows: IncRow[]; warehouses:
           </tr>
         </thead>
         <tbody>
-          {list.map((g) => <GroupRow key={g.poId} group={g} warehouses={warehouses} />)}
+          {list.map((g) => <GroupRow key={g.poId} group={g} warehouses={warehouses} canEdit={canEdit} />)}
         </tbody>
       </table>
     </div>
@@ -109,7 +109,7 @@ export function IncomingList({ rows, warehouses }: { rows: IncRow[]; warehouses:
   );
 }
 
-function GroupRow({ group, warehouses }: { group: Group & { brandId?: string | null }; warehouses: WarehouseOpt[] }) {
+function GroupRow({ group, warehouses, canEdit = true }: { group: Group & { brandId?: string | null }; warehouses: WarehouseOpt[]; canEdit?: boolean }) {
   const [open, setOpen] = useState(false);
   const initial = group.batches[0];
   const repairBatches = group.batches.slice(1);
@@ -166,12 +166,12 @@ function GroupRow({ group, warehouses }: { group: Group & { brandId?: string | n
         <td className="py-3 pr-4 text-right"></td>
       </tr>
 
-      {open && group.batches.map((b) => <BatchRow key={b.id} row={b} warehouses={warehouses} />)}
+      {open && group.batches.map((b) => <BatchRow key={b.id} row={b} warehouses={warehouses} canEdit={canEdit} />)}
     </>
   );
 }
 
-function BatchRow({ row, warehouses }: { row: IncRow; warehouses: WarehouseOpt[] }) {
+function BatchRow({ row, warehouses, canEdit = true }: { row: IncRow; warehouses: WarehouseOpt[]; canEdit?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const inc = sumLines(row, (l) => num(l.qty_incoming));
@@ -200,10 +200,10 @@ function BatchRow({ row, warehouses }: { row: IncRow; warehouses: WarehouseOpt[]
       <td className="py-2 pr-3">{badge}</td>
       <td className="py-2 pr-4 text-right">
         <div className="flex items-center justify-end gap-1">
-          {row.status === "inbound" && (
+          {canEdit && row.status === "inbound" && (
             <QCDialog receipt={{ id: row.id, code: row.code, brandId: row.brand_id, incomingNo: row.incoming_no, lines: row.lines }} warehouses={warehouses} />
           )}
-          {row.status === "repair" && (
+          {canEdit && row.status === "repair" && (
             <RepairDialog receipt={{ id: row.id, code: row.code, lines: row.lines.map((l) => ({ sku: (l.sku as string) ?? "", size: (l.size as string) ?? "", qtyRepair: num(l.qty_repair) })) }} />
           )}
           {row.status !== "inbound" && good > 0 && (
@@ -212,12 +212,12 @@ function BatchRow({ row, warehouses }: { row: IncRow; warehouses: WarehouseOpt[]
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 hover:opacity-80">
                 <FileText className="h-4 w-4" /> Invoice
               </a>
-            ) : (
+            ) : canEdit ? (
               <Button variant="ghost" size="sm" disabled={pending} title="Terbitkan invoice jasa dari Good batch ini"
                 onClick={() => startTransition(async () => { const r = await createGrnInvoice(row.id); if (r.ok) { window.open(`/print/grninvoice/${row.id}`, "_blank"); router.refresh(); } })}>
                 <FileText className="h-4 w-4" /> Buat Invoice
               </Button>
-            )
+            ) : null
           )}
           <a href={`/print/grn/${row.id}`} target="_blank" rel="noreferrer" title="Detail & print"
             className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground">

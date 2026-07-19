@@ -8,7 +8,7 @@ import { createMaterialCategory, updateMaterialCategory, deleteMaterialCategory 
 
 export type MaterialCategory = { id: string; name: string; code: string | null };
 
-export function CategoryManager({ categories }: { categories: MaterialCategory[] }) {
+export function CategoryManager({ categories, canEdit = true }: { categories: MaterialCategory[]; canEdit?: boolean }) {
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newCode, setNewCode] = useState("");
@@ -25,6 +25,8 @@ export function CategoryManager({ categories }: { categories: MaterialCategory[]
       setNewName(""); setNewCode(""); router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

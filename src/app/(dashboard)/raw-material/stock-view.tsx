@@ -20,7 +20,7 @@ export type StockRow = {
 };
 export type Opt = { id: string; name: string; code?: string | null };
 
-export function StockView({ rows, categories, brands }: { rows: StockRow[]; categories: Opt[]; brands: Opt[] }) {
+export function StockView({ rows, categories, brands }: { rows: StockRow[]; categories: Opt[]; brands: Opt[]; canEdit?: boolean }) {
   const [catFilter, setCatFilter] = useState<string>("");
   const [brandFilter, setBrandFilter] = useState<string>("");
   const [q, setQ] = useState("");

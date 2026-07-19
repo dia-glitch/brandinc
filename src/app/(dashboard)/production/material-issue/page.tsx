@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { IssueForm, type SpkOpt, type WarehouseOpt, type MaterialOpt } from "./issue-form";
 import { IssueList, type IssueRow } from "./issue-list";
 
@@ -66,6 +68,9 @@ async function getData() {
 export default async function MaterialIssuePage() {
   const { spks, warehouses, materials, rows } = await getData();
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "prod_material_issue");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -76,7 +81,7 @@ export default async function MaterialIssuePage() {
             {rows.length} pengeluaran. Keluarkan bahan dari gudang ke SPK — nilai keluar (avg cost) jadi komponen COGM.
           </p>
         </div>
-        <IssueForm spks={spks} warehouses={warehouses} materials={materials} />
+        {canEdit && <IssueForm spks={spks} warehouses={warehouses} materials={materials} />}
       </div>
 
       {rows.length === 0 ? (
@@ -85,7 +90,7 @@ export default async function MaterialIssuePage() {
           <p className="mt-1 text-sm font-medium text-muted-foreground">Klik &quot;Keluarkan Bahan&quot;: pilih SPK → tambah bahan &amp; qty. Stok bahan berkurang otomatis.</p>
         </div>
       ) : (
-        <IssueList rows={rows} />
+        <IssueList rows={rows} canEdit={canEdit} />
       )}
     </div>
   );

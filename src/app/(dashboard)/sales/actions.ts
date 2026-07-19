@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEMO_COMPANY_ID } from "@/lib/supabase/config";
-import { isAdmin } from "@/lib/roles";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 
 type Result = { ok: true } | { ok: false; error: string };
 type CreateResult = { ok: true; code: string } | { ok: false; error: string };
@@ -43,6 +44,7 @@ export type SaleInput = {
 
 export async function createSale(input: SaleInput): Promise<CreateResult> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "sales_penjualan")) return { ok: false, error: "Anda tidak punya akses untuk membuat penjualan." };
   if (!input.brandId) return { ok: false, error: "Pilih brand." };
   const lines = (input.lines ?? []).filter((l) => l.variantId && l.warehouseId && l.qty > 0);
   if (lines.length === 0) return { ok: false, error: "Tambah minimal satu produk (qty > 0)." };
@@ -82,6 +84,7 @@ export async function createSale(input: SaleInput): Promise<CreateResult> {
 /** Terima pembayaran penjualan → kas masuk. AR/konsinyasi pakai ref_type ar_receipt (nyambung ke Piutang), marketplace pakai sales_receipt. */
 export async function receiveSalePayment(input: { id: string; code: string; amount: number; accountId: string; date: string; method: string }): Promise<Result> {
   const supabase = createClient();
+  if (!canAct(await getRole(supabase), "sales_penerimaan")) return { ok: false, error: "Anda tidak punya akses untuk menerima pembayaran." };
   if (!input.accountId) return { ok: false, error: "Pilih akun kas/bank penerima." };
   if (!(input.amount > 0)) return { ok: false, error: "Nominal harus > 0." };
   const { data: o } = await supabase.from("sales_orders").select("settlement").eq("id", input.id).single();
@@ -98,7 +101,7 @@ export async function receiveSalePayment(input: { id: string; code: string; amou
 /** Edit/adjustment penjualan (khusus admin): balikkan stok lama → pasang stok baru. */
 export async function updateSale(id: string, input: SaleInput): Promise<Result> {
   const supabase = createClient();
-  if (!(await isAdmin(supabase))) return { ok: false, error: "Hanya admin yang boleh edit/adjustment penjualan." };
+  if (!canAct(await getRole(supabase), "sales_penjualan")) return { ok: false, error: "Anda tidak punya akses untuk edit/adjustment penjualan." };
   const { data: order } = await supabase.from("sales_orders").select("id,brand_id").eq("id", id).is("deleted_at", null).single();
   if (!order) return { ok: false, error: "Penjualan tidak ditemukan." };
   const brandId = input.brandId || (order.brand_id as string);
@@ -142,7 +145,7 @@ export async function updateSale(id: string, input: SaleInput): Promise<Result> 
 
 export async function deleteSale(id: string): Promise<Result> {
   const supabase = createClient();
-  if (!(await isAdmin(supabase))) return { ok: false, error: "Hanya admin yang boleh menghapus penjualan." };
+  if (!canAct(await getRole(supabase), "sales_penjualan")) return { ok: false, error: "Anda tidak punya akses untuk menghapus penjualan." };
   const { data: order } = await supabase.from("sales_orders").select("brand_id").eq("id", id).single();
   const { data: lines } = await supabase.from("sales_order_lines").select("variant_id,warehouse_id,qty,cogm").eq("order_id", id).is("deleted_at", null);
   // Kembalikan stok.

@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { ProdPOForm, type SpkOpt, type SupplierOpt } from "./po-form";
 import { ProdPOList, type ProdPORow } from "./po-list";
 
@@ -75,6 +77,9 @@ async function getData() {
 export default async function ProductionPOPage() {
   const { rows, spks, suppliers } = await getData();
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "prod_po");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -85,7 +90,7 @@ export default async function ProductionPOPage() {
             {rows.length} PO. Order jasa produksi (ongkos WIP) ke vendor — kode <b>PO-[Kode SPK]</b>, qty PO manual mengikuti cutting report.
           </p>
         </div>
-        <ProdPOForm spks={spks} suppliers={suppliers} />
+        {canEdit && <ProdPOForm spks={spks} suppliers={suppliers} />}
       </div>
 
       {rows.length === 0 ? (
@@ -96,7 +101,7 @@ export default async function ProductionPOPage() {
           </p>
         </div>
       ) : (
-        <ProdPOList rows={rows} />
+        <ProdPOList rows={rows} canEdit={canEdit} />
       )}
     </div>
   );

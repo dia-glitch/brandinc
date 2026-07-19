@@ -16,7 +16,7 @@ type Line = { key: string; materialId: string; qty: string };
 let seq = 0;
 const newKey = () => `l${seq++}`;
 
-export function IssueForm({ spks, warehouses, materials }: { spks: SpkOpt[]; warehouses: WarehouseOpt[]; materials: MaterialOpt[] }) {
+export function IssueForm({ spks, warehouses, materials, canEdit = true }: { spks: SpkOpt[]; warehouses: WarehouseOpt[]; materials: MaterialOpt[]; canEdit?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -64,6 +64,8 @@ export function IssueForm({ spks, warehouses, materials }: { spks: SpkOpt[]; war
       setSaved({ id: res.id, code: res.code }); router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

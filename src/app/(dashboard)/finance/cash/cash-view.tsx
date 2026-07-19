@@ -10,7 +10,7 @@ import { createAccount, updateAccount, deleteAccount, recordCashIn, transferBook
 
 export type Account = { id: string; name: string; kind: string; bankName: string | null; accountNo: string | null; accountHolder: string | null; opening: number; inSum: number; outSum: number; balance: number };
 
-export function CashView({ accounts }: { accounts: Account[] }) {
+export function CashView({ accounts, canEdit = true }: { accounts: Account[]; canEdit?: boolean }) {
   const [openNew, setOpenNew] = useState(false);
   const [edit, setEdit] = useState<Account | null>(null);
   const [topup, setTopup] = useState<Account | null>(null);
@@ -25,10 +25,12 @@ export function CashView({ accounts }: { accounts: Account[] }) {
           <h1 className="text-2xl font-extrabold">Kas &amp; Bank</h1>
           <p className="mt-1 text-sm font-medium text-muted-foreground">Total saldo semua akun: <b className="text-foreground">{formatIDR(totalBalance)}</b></p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setTransfer(true)} disabled={accounts.length < 2}><ArrowLeftRight className="h-4 w-4" /> Pindah Buku</Button>
-          <Button size="sm" onClick={() => setOpenNew(true)}><Plus className="h-4 w-4" /> Akun Baru</Button>
-        </div>
+        {canEdit && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setTransfer(true)} disabled={accounts.length < 2}><ArrowLeftRight className="h-4 w-4" /> Pindah Buku</Button>
+            <Button size="sm" onClick={() => setOpenNew(true)}><Plus className="h-4 w-4" /> Akun Baru</Button>
+          </div>
+        )}
       </div>
 
       {accounts.length === 0 ? (
@@ -42,13 +44,15 @@ export function CashView({ accounts }: { accounts: Account[] }) {
                   <div className="flex items-center gap-2"><Badge tone={a.kind === "cash" ? "accent" : "info"}>{a.kind === "cash" ? "Kas" : "Bank"}</Badge><span className="font-bold">{a.name}</span></div>
                   {a.bankName && <p className="mt-0.5 text-xs font-medium text-muted-foreground">{a.bankName} · {a.accountNo ?? "—"}</p>}
                 </div>
-                <div className="flex gap-1">
-                  <button onClick={() => setEdit(a)} className="grid h-8 w-8 place-items-center rounded-lg hover:bg-muted" title="Edit"><Pencil className="h-4 w-4" /></button>
-                </div>
+                {canEdit && (
+                  <div className="flex gap-1">
+                    <button onClick={() => setEdit(a)} className="grid h-8 w-8 place-items-center rounded-lg hover:bg-muted" title="Edit"><Pencil className="h-4 w-4" /></button>
+                  </div>
+                )}
               </div>
               <p className="mt-3 text-2xl font-black tabular-nums">{formatIDR(a.balance)}</p>
               <p className="text-xs font-medium text-muted-foreground">masuk {formatIDR(a.inSum)} · keluar {formatIDR(a.outSum)}</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => setTopup(a)}><ArrowDownToLine className="h-4 w-4" /> Cash In / Penerimaan</Button>
+              {canEdit && <Button variant="outline" size="sm" className="mt-3" onClick={() => setTopup(a)}><ArrowDownToLine className="h-4 w-4" /> Cash In / Penerimaan</Button>}
             </div>
           ))}
         </div>

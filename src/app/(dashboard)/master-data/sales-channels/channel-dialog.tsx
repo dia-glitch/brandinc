@@ -16,7 +16,7 @@ export type ChannelData = {
 };
 export type WarehouseOpt = { id: string; name: string };
 
-export function ChannelDialog({ channel, warehouses }: { channel?: ChannelData; warehouses: WarehouseOpt[] }) {
+export function ChannelDialog({ channel, warehouses, canEdit = true }: { channel?: ChannelData; warehouses: WarehouseOpt[]; canEdit?: boolean }) {
   const isEdit = Boolean(channel);
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -54,6 +54,8 @@ export function ChannelDialog({ channel, warehouses }: { channel?: ChannelData; 
       close(); router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

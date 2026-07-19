@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { ColorDialog, type ColorData } from "./color-dialog";
 import { ColorTree } from "./color-tree";
 
@@ -21,6 +23,9 @@ export default async function ColorsPage() {
   const parentsOpt = tops.map((c) => ({ id: c.id, name: c.name }));
   const subCount = colors.length - tops.length;
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "master_data");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -31,7 +36,7 @@ export default async function ColorsPage() {
             {tops.length} parent colour · {subCount} sub colour. Saat produksi: pilih parent dulu, sub-nya muncul.
           </p>
         </div>
-        <ColorDialog parents={parentsOpt} />
+        <ColorDialog parents={parentsOpt} canEdit={canEdit} />
       </div>
 
       {colors.length === 0 ? (
@@ -42,7 +47,7 @@ export default async function ColorsPage() {
           </p>
         </div>
       ) : (
-        <ColorTree colors={colors} parents={parentsOpt} />
+        <ColorTree colors={colors} parents={parentsOpt} canEdit={canEdit} />
       )}
 
       <p className="text-xs font-medium text-muted-foreground">

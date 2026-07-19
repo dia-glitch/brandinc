@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { SPKForm, type BrandOpt, type ProductOpt, type SupplierOpt } from "./spk-form";
 import { SPKList, type SPKRow } from "./spk-list";
 
@@ -79,6 +81,9 @@ async function getData() {
 export default async function SPKPage() {
   const { rows, brands, products, suppliers } = await getData();
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "prod_spk");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -89,7 +94,7 @@ export default async function SPKPage() {
             {rows.length} SPK. Kode otomatis SPK-KodeBrand-NoUrut (mis. SPK-BRE-001) — jadi acuan sampai penerimaan &amp; finance.
           </p>
         </div>
-        <SPKForm brands={brands} products={products} suppliers={suppliers} />
+        {canEdit && <SPKForm brands={brands} products={products} suppliers={suppliers} />}
       </div>
 
       {rows.length === 0 ? (
@@ -100,7 +105,7 @@ export default async function SPKPage() {
           </p>
         </div>
       ) : (
-        <SPKList rows={rows} />
+        <SPKList rows={rows} canEdit={canEdit} />
       )}
     </div>
   );

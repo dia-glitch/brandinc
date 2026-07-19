@@ -12,7 +12,7 @@ import {
 
 export type SupplierCategory = { id: string; name: string };
 
-export function CategoryManager({ categories }: { categories: SupplierCategory[] }) {
+export function CategoryManager({ categories, canEdit = true }: { categories: SupplierCategory[]; canEdit?: boolean }) {
   const [open, setOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [pending, startTransition] = useTransition();
@@ -29,6 +29,8 @@ export function CategoryManager({ categories }: { categories: SupplierCategory[]
       router.refresh();
     });
   }
+
+  if (!canEdit) return null;
 
   return (
     <>

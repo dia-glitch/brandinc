@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { canAct } from "@/lib/permissions";
 import { CategoryDialog, type CategoryData } from "./category-dialog";
 import { CategoryTree } from "./category-tree";
 
@@ -20,6 +22,9 @@ export default async function CategoriesPage() {
   const tops = cats.filter((c) => !c.parent_id);
   const parentsOpt = tops.map((c) => ({ id: c.id, name: c.name }));
 
+  let canEdit = true;
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "master_data");
+
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -30,7 +35,7 @@ export default async function CategoriesPage() {
             Struktur 2 tingkat: Kategori Utama → Sub-kategori. Klik baris untuk buka/tutup.
           </p>
         </div>
-        <CategoryDialog parents={parentsOpt} />
+        <CategoryDialog parents={parentsOpt} canEdit={canEdit} />
       </div>
 
       {cats.length === 0 ? (
@@ -41,7 +46,7 @@ export default async function CategoriesPage() {
           </p>
         </div>
       ) : (
-        <CategoryTree categories={cats} parents={parentsOpt} />
+        <CategoryTree categories={cats} parents={parentsOpt} canEdit={canEdit} />
       )}
 
       <p className="text-xs font-medium text-muted-foreground">
