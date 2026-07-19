@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Design tokens ERP Fashion — tema Minimalist.
+  Nilai HSL diturunkan dari palet referensi:
+  Ghost White #F6F5FA · White · Eerie Black #212121 · Vanila #EFF0A3 · Alice #D8DFE9 · Honeydew #CFDECA
+*/
+@layer base {
+  :root {
+    --font-urbanist: "Urbanist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --background: 250 24% 97%;        /* Ghost White */
+    --surface: 0 0% 100%;             /* White cards */
+    --foreground: 0 0% 13%;           /* Eerie Black */
+    --muted: 250 20% 95%;
+    --muted-foreground: 240 3% 55%;
+    --border: 240 9% 92%;
+    --primary: 0 0% 13%;              /* Eerie Black */
+    --primary-foreground: 0 0% 100%;
+    --accent: 61 73% 79%;            /* Vanila */
+    --accent-foreground: 0 0% 13%;
+  }
+
+  .dark {
+    --background: 0 0% 10%;
+    --surface: 0 0% 15%;
+    --foreground: 250 24% 97%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 240 5% 65%;
+    --border: 0 0% 22%;
+    --primary: 0 0% 96%;
+    --primary-foreground: 0 0% 13%;
+    --accent: 61 73% 79%;
+    --accent-foreground: 0 0% 13%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* pill filter khas referensi */
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2
+           text-sm font-bold text-muted-foreground transition-colors;
+  }
+  .pill[data-active="true"] {
+    @apply bg-primary text-primary-foreground border-transparent;
+  }
+  .card {
+    @apply rounded-2xl bg-surface border border-border shadow-card;
+  }
+}
