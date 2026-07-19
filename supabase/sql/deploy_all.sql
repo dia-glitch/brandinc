@@ -33,6 +33,8 @@ alter table public.payments disable row level security;
 alter table public.production_po_lines disable row level security;
 alter table public.production_pos disable row level security;
 alter table public.products disable row level security;
+alter table public.product_variants disable row level security;
+alter table public.spk_costing disable row level security;
 alter table public.purchase_order_lines disable row level security;
 alter table public.purchase_orders disable row level security;
 alter table public.receivables disable row level security;

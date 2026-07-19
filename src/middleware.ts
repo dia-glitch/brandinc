@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { pageKeyForPath, canViewPath } from "@/lib/permissions";
-import { resolveRole } from "@/lib/roles";
+import { resolveRole } from "@/lib/roles-core";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
