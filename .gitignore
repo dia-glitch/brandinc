@@ -9,3 +9,6 @@ build
 .netlify
 .vercel
 next-env.d.ts
+
+# temp
+_to_delete/

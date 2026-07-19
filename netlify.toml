@@ -1,18 +1,12 @@
-# Deploy Next.js (App Router) ke Netlify.
-# Plugin resmi menangani SSR, Server Actions, Route Handlers, & Edge.
+# Konfigurasi deploy Netlify untuk Next.js 14 (Brand.Inc)
 [build]
   command = "npm run build"
   publish = ".next"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
 [build.environment]
   NODE_VERSION = "20"
 
-# Catatan:
-# Set environment variables di Netlify (Site settings -> Environment variables):
-#   NEXT_PUBLIC_SUPABASE_URL
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY
-#   SUPABASE_SERVICE_ROLE_KEY   (hanya untuk job admin/seed, JANGAN diekspos ke client)
-#   DATABASE_URL                (koneksi Postgres untuk Drizzle migrate; pooler 6543)
+# Runtime resmi Next.js (SSR, server actions, middleware) — otomatis dipakai Netlify,
+# didefinisikan eksplisit agar konsisten.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
