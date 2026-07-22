@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Boxes, Warehouse, PackageOpen,
-  Factory, Store, Truck, CreditCard, Wallet, BookText, BarChart3, Settings,
+  Factory, Store, Truck, CreditCard, Wallet, BookText, BarChart3, Settings, HelpCircle,
   type LucideIcon,
 } from "lucide-react";
 import type { PageKey } from "@/lib/permissions";
@@ -75,6 +75,12 @@ export const NAV: NavGroup[] = [
           { key: "settings", href: "/settings/data" },
         ],
       },
+    ],
+  },
+  {
+    label: "Bantuan",
+    items: [
+      { label: "Panduan", icon: HelpCircle, mvp: true, pages: [{ key: "dashboard", href: "/panduan" }] },
     ],
   },
 ];

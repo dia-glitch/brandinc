@@ -101,6 +101,7 @@ const ROUTE_MAP: [string, PageKey][] = [
   ["/distribution", "dist_submit"],
   ["/settings", "settings"],
   ["/bi", "dashboard"],
+  ["/panduan", "dashboard"],
 ];
 
 /** PageKey untuk sebuah path. null = rute tak-terjaga (mis. /login, /print) → diizinkan. */
