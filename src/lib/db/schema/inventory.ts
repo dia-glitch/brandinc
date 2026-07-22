@@ -20,6 +20,7 @@ export const inventoryMovements = pgTable("inventory_movements", {
   unitCost: numeric("unit_cost", { precision: 18, scale: 4 }).notNull().default("0"),
   sourceDocType: text("source_doc_type"),
   sourceDocId: uuid("source_doc_id"),
+  note: text("note"), // keterangan (mis. alasan stock opname / penyesuaian)
 });
 
 /**

@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { label: "Katalog / Master", href: "/inventory" },
   { label: "Stok per Lokasi", href: "/inventory/stock" },
+  { label: "Log Pergerakan", href: "/inventory/log" },
+  { label: "Stock Opname", href: "/inventory/opname" },
 ];
 
 export function InventoryTabs() {

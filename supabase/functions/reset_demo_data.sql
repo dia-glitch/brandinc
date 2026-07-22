@@ -1,15 +1,20 @@
 -- =====================================================================
--- RESET DEMO DATA (blueprint Bab 12)
--- Menghapus SELURUH data di sebuah Company DEMO dalam SATU transaksi,
--- dengan urutan dependensi yang benar, lalu (opsional) membangun ulang
--- saldo turunan. Data/logic produksi TIDAK tersentuh.
+-- RESET DEMO DATA (revisi) — hanya menghapus DATA TRANSAKSI.
+-- DIPERTAHANKAN (TIDAK dihapus):
+--   • Semua MASTER DATA: brands, categories, colors, sizes, materials,
+--     material_categories, expense_categories, sales_channels, suppliers,
+--     supplier_categories, customers, warehouses, products, product_variants.
+--   • COA: chart_of_accounts.
+--   • Akun Finance: cash_accounts (beserta saldo awal).
+--   • companies & user_profiles.
 --
--- Aman karena:
---  1) Data demo terisolasi di company_id tersendiri (+ penanda is_demo).
---  2) Hapus anak -> induk sehingga tidak menabrak foreign key.
---  3) stock_balances selalu bisa dibangun ulang dari inventory_movements.
+-- DIHAPUS (transaksi & saldo turunan): penjualan, retur, piutang, payment
+--   request, payments, expenses, pembelian (PO/tunai), produksi (WO/SPK/GRN/
+--   material issue), jurnal, transfer stok, serta stock_balances /
+--   inventory_movements / material_stock_balances / material_movements.
+--   Stok kembali 0 (bisa dibangun ulang dari transaksi baru).
 --
--- Guard: fungsi menolak jika company bukan penanda demo (is_demo = true).
+-- Guard: menolak bila company bukan demo (is_demo = true).
 -- =====================================================================
 create or replace function public.reset_demo_data(p_company uuid)
 returns void
@@ -22,7 +27,7 @@ begin
     raise exception 'reset_demo_data ditolak: company % bukan demo (is_demo=false).', p_company;
   end if;
 
-  -- Urutan HAPUS: dari tabel paling "anak" ke "induk".
+  -- ---- Transaksi (anak -> induk) ----
   delete from public.cash_purchase_lines  where company_id = p_company;
   delete from public.cash_purchases       where company_id = p_company;
   delete from public.stock_transfer_lines where company_id = p_company;
@@ -36,7 +41,6 @@ begin
   delete from public.payment_requests     where company_id = p_company;
   delete from public.payments             where company_id = p_company;
   delete from public.expenses             where company_id = p_company;
-  delete from public.cash_accounts        where company_id = p_company;
   delete from public.spk_costing          where company_id = p_company;
   delete from public.material_issue_lines where company_id = p_company;
   delete from public.material_issues      where company_id = p_company;
@@ -47,34 +51,29 @@ begin
   delete from public.purchase_order_lines where company_id = p_company;
   delete from public.purchase_orders      where company_id = p_company;
   delete from public.work_order_specs     where company_id = p_company;
-  delete from public.work_order_lines    where company_id = p_company;
-  delete from public.work_orders         where company_id = p_company;
-  delete from public.journal_entry_lines where company_id = p_company;
-  delete from public.journal_entries     where company_id = p_company;
-  delete from public.stock_balances      where company_id = p_company;
-  delete from public.inventory_movements where company_id = p_company;
-  delete from public.material_stock_balances where company_id = p_company;
-  delete from public.material_movements  where company_id = p_company;
-  delete from public.product_variants    where company_id = p_company;
-  delete from public.products            where company_id = p_company;
-  delete from public.categories          where company_id = p_company;
-  delete from public.colors              where company_id = p_company;
-  delete from public.sizes               where company_id = p_company;
-  delete from public.materials           where company_id = p_company;
-  delete from public.material_categories where company_id = p_company;
-  delete from public.expense_categories  where company_id = p_company;
-  delete from public.sales_channels      where company_id = p_company;
-  delete from public.suppliers           where company_id = p_company;
-  delete from public.supplier_categories where company_id = p_company;
-  delete from public.customers           where company_id = p_company;
-  delete from public.warehouses          where company_id = p_company;
-  delete from public.chart_of_accounts   where company_id = p_company;
-  delete from public.brands              where company_id = p_company;
-  -- companies & user_brand_access sengaja DIPERTAHANKAN agar tenant demo tetap ada
-  -- (siap dimuati sample lagi). Hapus baris companies hanya bila benar-benar ingin membuang tenant.
+  delete from public.work_order_lines     where company_id = p_company;
+  delete from public.work_orders          where company_id = p_company;
+  delete from public.journal_entry_lines  where company_id = p_company;
+  delete from public.journal_entries      where company_id = p_company;
 
-  raise notice 'Demo data untuk company % sudah direset bersih.', p_company;
+  -- ---- Saldo/pergerakan stok turunan (stok kembali 0) ----
+  delete from public.stock_balances          where company_id = p_company;
+  delete from public.inventory_movements     where company_id = p_company;
+  delete from public.material_stock_balances where company_id = p_company;
+  delete from public.material_movements      where company_id = p_company;
+
+  -- =====================================================================
+  -- SENGAJA DIPERTAHANKAN (JANGAN dihapus):
+  --   brands, categories, colors, sizes, materials, material_categories,
+  --   expense_categories, sales_channels, suppliers, supplier_categories,
+  --   customers, warehouses, products, product_variants   (MASTER DATA)
+  --   chart_of_accounts                                   (COA)
+  --   cash_accounts                                       (Akun Finance)
+  --   companies, user_profiles
+  -- =====================================================================
+
+  raise notice 'Data TRANSAKSI demo untuk company % sudah direset. Master data, COA, & akun kas/bank tetap.', p_company;
 end $$;
 
--- Contoh pemakaian (dari SQL editor / Server Action dengan service role):
---   select public.reset_demo_data('<uuid-company-demo>');
+-- Pemakaian (SQL editor / server action service role):
+--   select public.reset_demo_data('11111111-1111-1111-1111-111111111111');
