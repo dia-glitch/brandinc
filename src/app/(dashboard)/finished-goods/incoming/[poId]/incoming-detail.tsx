@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { ArrowLeft, Printer, FileText, Package } from "lucide-react";
+import { ArrowLeft, Printer, FileText, Package, QrCode } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { createGrnInvoice } from "../actions";
@@ -46,6 +46,9 @@ export function IncomingDetail({ info, rows, warehouses, canEdit }: { info: POIn
             <p className="font-mono text-xs text-muted-foreground">{info.poCode}</p>
           </div>
         </div>
+        <Link href={`/finished-goods/incoming/${info.poId}/barcode`} className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-bold hover:bg-muted">
+          <QrCode className="h-4 w-4" /> Cetak Barcode
+        </Link>
       </div>
 
       {/* Informasi PO */}
