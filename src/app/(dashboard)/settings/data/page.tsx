@@ -1,6 +1,7 @@
-import { RotateCcw, Plus, Download } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SettingsTabs } from "../tabs";
+import { ResetDemoButton } from "./reset-demo-button";
 
 const SETS = [
   { name: "Sample Produk & Stok", rows: "1.240", date: "12 Jul" },
@@ -25,8 +26,8 @@ export default function DataManagementPage() {
       </div>
 
       <div className="flex flex-wrap gap-2.5">
-        <Button size="sm"><Plus className="h-4 w-4" /> Muat Data Sample</Button>
-        <Button variant="outline" size="sm"><Download className="h-4 w-4" /> Ekspor Data Demo</Button>
+        <Button size="sm" disabled title="Segera hadir"><Plus className="h-4 w-4" /> Muat Data Sample</Button>
+        <Button variant="outline" size="sm" disabled title="Segera hadir"><Download className="h-4 w-4" /> Ekspor Data Demo</Button>
       </div>
 
       <div className="card p-0">
@@ -52,15 +53,12 @@ export default function DataManagementPage() {
 
       {/* Danger zone */}
       <div className="rounded-2xl border border-danger/40 bg-danger/5 p-5">
-        <p className="flex items-center gap-2 font-extrabold text-danger">
-          <RotateCcw className="h-4 w-4" /> Reset Semua Data Demo
-        </p>
+        <p className="flex items-center gap-2 font-extrabold text-danger">Reset Semua Data Demo</p>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
-          Menghapus SELURUH transaksi &amp; saldo turunan di Company DEMO dalam satu transaksi
-          (fungsi <code className="rounded bg-muted px-1.5 py-0.5 text-xs">reset_demo_data()</code>),
-          lalu membangun ulang stock_balances &amp; periode. Data/logic asli tidak tersentuh.
+          Menghapus SELURUH data <b>transaksi</b> &amp; saldo turunan di Company DEMO (penjualan, retur, piutang, pembelian,
+          produksi, jurnal, pergerakan &amp; saldo stok). <b>Master data, COA, dan akun kas/bank tetap.</b> Hanya admin.
         </p>
-        <Button variant="danger" size="sm" className="mt-4">Reset Data Demo</Button>
+        <ResetDemoButton />
       </div>
     </div>
   );
