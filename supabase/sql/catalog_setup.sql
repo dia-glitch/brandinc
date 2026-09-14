@@ -1,29 +1,24 @@
 -- =====================================================================
--- STORAGE — buat bucket 'payment-docs' & 'spk-images' (Public) + policy.
+-- KATALOG — foto real produk (terpisah dari foto SPK).
+-- 1) Kolom catalog_image_url di products (1 foto utama per produk/style).
+-- 2) Bucket 'catalog-images' (Public) + perbarui policy storage semua bucket app.
 -- Jalankan di Supabase SQL Editor. Idempotent (aman diulang).
--- Bucket public → getPublicUrl bisa dibaca; policy → user login bisa upload.
 -- =====================================================================
 
--- 1) Buat / set bucket jadi PUBLIC
-insert into storage.buckets (id, name, public) values ('payment-docs', 'payment-docs', true)
-  on conflict (id) do update set public = true;
-insert into storage.buckets (id, name, public) values ('spk-images', 'spk-images', true)
-  on conflict (id) do update set public = true;
+alter table public.products add column if not exists catalog_image_url text;
+
 insert into storage.buckets (id, name, public) values ('catalog-images', 'catalog-images', true)
   on conflict (id) do update set public = true;
 
--- 2) Policy pada storage.objects (khusus 2 bucket ini)
 drop policy if exists "brandinc_read"   on storage.objects;
 drop policy if exists "brandinc_insert" on storage.objects;
 drop policy if exists "brandinc_update" on storage.objects;
 drop policy if exists "brandinc_delete" on storage.objects;
 
--- Baca: publik (agar lampiran & foto bisa ditampilkan lewat URL)
 create policy "brandinc_read" on storage.objects
   for select to public
   using (bucket_id in ('payment-docs', 'spk-images', 'catalog-images'));
 
--- Upload / ubah / hapus: user login (authenticated)
 create policy "brandinc_insert" on storage.objects
   for insert to authenticated
   with check (bucket_id in ('payment-docs', 'spk-images', 'catalog-images'));

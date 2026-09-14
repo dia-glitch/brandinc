@@ -15,7 +15,7 @@ export type Role =
   | "warehouse_material" | "warehouse_outbound" | "marketing" | "md_sales" | "staff";
 
 export type PageKey =
-  | "dashboard" | "master_data" | "inventory" | "product_lifecycle"
+  | "dashboard" | "master_data" | "inventory" | "product_lifecycle" | "catalog"
   | "sales_penjualan" | "sales_penerimaan"
   | "rm_stock" | "rm_create" | "rm_po" | "rm_penerimaan" | "rm_cash"
   | "prod_product" | "prod_spk" | "prod_po" | "prod_material_issue" | "prod_cogm"
@@ -56,20 +56,20 @@ export const ROLE_LABEL: Record<Role, string> = {
 
 /** Matriks DEFAULT dari template ALEZA (Brandinc). Key hilang = No Access. admin & staff ditangani terpisah. */
 const DEFAULT_MATRIX: Record<EditableRole, Partial<Record<PageKey, Level>>> = {
-  head: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "A", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "L", rm_po: "L", rm_penerimaan: "L", rm_cash: "L", prod_product: "L", prod_spk: "L", prod_po: "L", prod_material_issue: "L", prod_cogm: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A", fin_other: "L", accounting: "A" },
-  designer: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "A", rm_create: "A", rm_po: "L", rm_penerimaan: "L", rm_cash: "A", prod_product: "A", prod_spk: "A", prod_po: "L", prod_material_issue: "A", prod_cogm: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A" },
-  director: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "A", sales_penjualan: "L", sales_penerimaan: "A", rm_stock: "L", rm_create: "L", rm_po: "L", rm_penerimaan: "L", rm_cash: "L", prod_product: "L", prod_spk: "L", prod_po: "L", prod_material_issue: "L", prod_cogm: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "L", fin_other: "L", accounting: "L" },
-  finance: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "L", rm_po: "L", rm_penerimaan: "L", rm_cash: "L", prod_product: "L", prod_spk: "L", prod_po: "L", prod_material_issue: "L", prod_cogm: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A", fin_other: "A", accounting: "A" },
-  rnd: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "A", rm_create: "A", rm_po: "A", rm_penerimaan: "L", rm_cash: "A", prod_product: "A", prod_spk: "A", prod_po: "L", prod_material_issue: "A", prod_cogm: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A" },
-  mdp: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "A", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "A", rm_po: "A", rm_penerimaan: "L", rm_cash: "A", prod_product: "A", prod_spk: "L", prod_po: "A", prod_material_issue: "A", prod_cogm: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A" },
-  purchasing: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "A", rm_po: "A", rm_penerimaan: "L", rm_cash: "A", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A" },
-  qc: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", sales_penjualan: "L", sales_penerimaan: "L", prod_product: "L", prod_spk: "L", prod_po: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "A" },
-  warehouse_inbound: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", sales_penjualan: "L", sales_penerimaan: "L", prod_product: "L", prod_spk: "L", prod_po: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "A" },
-  warehouse_inventory: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "L", rm_po: "L", rm_penerimaan: "A", rm_cash: "L", prod_product: "L", prod_spk: "L", prod_po: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "A" },
-  warehouse_material: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "L", rm_po: "L", rm_penerimaan: "A", rm_cash: "L", prod_product: "L", prod_spk: "L", prod_po: "L", fg_stock: "L", fg_incoming_qc: "L" },
-  warehouse_outbound: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", sales_penjualan: "L", sales_penerimaan: "L", prod_product: "L", prod_spk: "L", prod_po: "L", dist_submit: "L", dist_process: "A", fg_stock: "L", fg_incoming_qc: "L" },
-  marketing: { dashboard: "A", inventory: "L", product_lifecycle: "L", fin_payment_request: "A" },
-  md_sales: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "A", sales_penjualan: "A", sales_penerimaan: "L", dist_submit: "A", dist_process: "L", fin_payment_request: "A" },
+  head: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "A", catalog: "A", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "L", rm_po: "L", rm_penerimaan: "L", rm_cash: "L", prod_product: "L", prod_spk: "L", prod_po: "L", prod_material_issue: "L", prod_cogm: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A", fin_other: "L", accounting: "A" },
+  designer: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", catalog: "A", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "A", rm_create: "A", rm_po: "L", rm_penerimaan: "L", rm_cash: "A", prod_product: "A", prod_spk: "A", prod_po: "L", prod_material_issue: "A", prod_cogm: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A" },
+  director: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "A", catalog: "L", sales_penjualan: "L", sales_penerimaan: "A", rm_stock: "L", rm_create: "L", rm_po: "L", rm_penerimaan: "L", rm_cash: "L", prod_product: "L", prod_spk: "L", prod_po: "L", prod_material_issue: "L", prod_cogm: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "L", fin_other: "L", accounting: "L" },
+  finance: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", catalog: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "L", rm_po: "L", rm_penerimaan: "L", rm_cash: "L", prod_product: "L", prod_spk: "L", prod_po: "L", prod_material_issue: "L", prod_cogm: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A", fin_other: "A", accounting: "A" },
+  rnd: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", catalog: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "A", rm_create: "A", rm_po: "A", rm_penerimaan: "L", rm_cash: "A", prod_product: "A", prod_spk: "A", prod_po: "L", prod_material_issue: "A", prod_cogm: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A" },
+  mdp: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "A", catalog: "A", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "A", rm_po: "A", rm_penerimaan: "L", rm_cash: "A", prod_product: "A", prod_spk: "L", prod_po: "A", prod_material_issue: "A", prod_cogm: "L", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A" },
+  purchasing: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", catalog: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "A", rm_po: "A", rm_penerimaan: "L", rm_cash: "A", fg_stock: "L", fg_incoming_qc: "L", fin_payment_request: "A" },
+  qc: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", catalog: "L", sales_penjualan: "L", sales_penerimaan: "L", prod_product: "L", prod_spk: "L", prod_po: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "A" },
+  warehouse_inbound: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", catalog: "L", sales_penjualan: "L", sales_penerimaan: "L", prod_product: "L", prod_spk: "L", prod_po: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "A" },
+  warehouse_inventory: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", catalog: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "L", rm_po: "L", rm_penerimaan: "A", rm_cash: "L", prod_product: "L", prod_spk: "L", prod_po: "L", dist_submit: "L", dist_process: "L", fg_stock: "L", fg_incoming_qc: "A" },
+  warehouse_material: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", catalog: "L", sales_penjualan: "L", sales_penerimaan: "L", rm_stock: "L", rm_create: "L", rm_po: "L", rm_penerimaan: "A", rm_cash: "L", prod_product: "L", prod_spk: "L", prod_po: "L", fg_stock: "L", fg_incoming_qc: "L" },
+  warehouse_outbound: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "L", catalog: "L", sales_penjualan: "L", sales_penerimaan: "L", prod_product: "L", prod_spk: "L", prod_po: "L", dist_submit: "L", dist_process: "A", fg_stock: "L", fg_incoming_qc: "L" },
+  marketing: { dashboard: "A", inventory: "L", product_lifecycle: "L", catalog: "A", fin_payment_request: "A" },
+  md_sales: { dashboard: "A", master_data: "L", inventory: "L", product_lifecycle: "A", catalog: "A", sales_penjualan: "A", sales_penerimaan: "L", dist_submit: "A", dist_process: "L", fin_payment_request: "A" },
 };
 
 /**
@@ -107,7 +107,7 @@ export const canAct = (role: Role, key: PageKey): boolean => accessLevel(role, k
 
 /** Semua PageKey yang bisa diatur di grid (settings dikecualikan -> selalu admin-only). */
 export const PAGE_KEYS: PageKey[] = [
-  "dashboard", "master_data", "inventory", "product_lifecycle",
+  "dashboard", "master_data", "inventory", "product_lifecycle", "catalog",
   "sales_penjualan", "sales_penerimaan",
   "rm_stock", "rm_create", "rm_po", "rm_penerimaan", "rm_cash",
   "prod_product", "prod_spk", "prod_po", "prod_material_issue", "prod_cogm",
@@ -116,7 +116,7 @@ export const PAGE_KEYS: PageKey[] = [
 ];
 
 export const PAGE_LABEL: Record<PageKey, string> = {
-  dashboard: "Dashboard", master_data: "Master Data", inventory: "Inventory", product_lifecycle: "Lifecycle Produk",
+  dashboard: "Dashboard", master_data: "Master Data", inventory: "Inventory", product_lifecycle: "Lifecycle Produk", catalog: "Katalog",
   sales_penjualan: "Penjualan", sales_penerimaan: "Penerimaan Bayar",
   rm_stock: "RM Stock", rm_create: "RM Master", rm_po: "RM PO", rm_penerimaan: "RM Penerimaan", rm_cash: "RM Cash",
   prod_product: "Produk", prod_spk: "SPK", prod_po: "Produksi PO", prod_material_issue: "Material Issue", prod_cogm: "COGM",
@@ -128,7 +128,7 @@ export const PAGE_LABEL: Record<PageKey, string> = {
 
 /** Grup kolom untuk grid (biar terbaca per-modul). */
 export const PAGE_GROUPS: { label: string; keys: PageKey[] }[] = [
-  { label: "Umum", keys: ["dashboard", "master_data", "inventory", "product_lifecycle"] },
+  { label: "Umum", keys: ["dashboard", "master_data", "inventory", "product_lifecycle", "catalog"] },
   { label: "Sales", keys: ["sales_penjualan", "sales_penerimaan"] },
   { label: "Raw Material", keys: ["rm_stock", "rm_create", "rm_po", "rm_penerimaan", "rm_cash"] },
   { label: "Produksi", keys: ["prod_product", "prod_spk", "prod_po", "prod_material_issue", "prod_cogm"] },
@@ -166,6 +166,7 @@ const ROUTE_MAP: [string, PageKey][] = [
   ["/production", "prod_product"],
   ["/distribution", "dist_submit"],
   ["/settings", "settings"],
+  ["/katalog", "catalog"],
   ["/lifecycle", "product_lifecycle"],
   ["/bi", "dashboard"],
   ["/panduan", "dashboard"],

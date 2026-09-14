@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Boxes, Warehouse, PackageOpen,
-  Factory, Store, Truck, CalendarClock, CreditCard, Wallet, BookText, BarChart3, Settings, HelpCircle,
+  Factory, Store, Truck, CalendarClock, Images, CreditCard, Wallet, BookText, BarChart3, Settings, HelpCircle,
   type LucideIcon,
 } from "lucide-react";
 import type { PageKey } from "@/lib/permissions";
@@ -52,6 +52,7 @@ export const NAV: NavGroup[] = [
         ],
       },
       { label: "Lifecycle Produk", icon: CalendarClock, pages: [{ key: "product_lifecycle", href: "/lifecycle" }] },
+      { label: "Katalog", icon: Images, pages: [{ key: "catalog", href: "/katalog" }] },
     ],
   },
   {

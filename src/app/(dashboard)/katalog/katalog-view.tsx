@@ -1,0 +1,179 @@
+"use client";
+
+import { useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { ImagePlus, Search, Trash2 } from "lucide-react";
+import { formatIDR } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { setCatalogImage } from "./actions";
+
+export type KatalogProduct = {
+  id: string; code: string; name: string; retail: number;
+  image: string | null; sizes: string[];
+};
+export type KatalogBrand = { id: string; name: string; products: KatalogProduct[] };
+
+export function KatalogView({ brands, canEdit }: { brands: KatalogBrand[]; canEdit: boolean }) {
+  const [active, setActive] = useState(brands[0]?.id ?? "");
+  const [q, setQ] = useState("");
+
+  const brand = brands.find((b) => b.id === active) ?? brands[0];
+  const list = useMemo(() => {
+    if (!brand) return [];
+    const s = q.trim().toLowerCase();
+    if (!s) return brand.products;
+    return brand.products.filter((p) => (p.code + " " + p.name).toLowerCase().includes(s));
+  }, [brand, q]);
+
+  return (
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">E-Catalog</p>
+        <h1 className="text-2xl font-extrabold">🖼️ Katalog Produk</h1>
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
+          Foto <b>real</b> produk (bukan foto SPK) — diunggah setelah pemotretan produk selesai.
+          Dibagi per brand, bisa dilihat seluruh tim.
+        </p>
+      </div>
+
+      {brands.length === 0 ? (
+        <div className="card p-10 text-center text-sm font-medium text-muted-foreground">Belum ada produk.</div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-2">
+              {brands.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => setActive(b.id)}
+                  data-active={b.id === active}
+                  className="pill"
+                >
+                  {b.name} <span className="ml-1 opacity-60">{b.products.length}</span>
+                </button>
+              ))}
+            </div>
+            <div className="relative w-full max-w-xs">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Cari kode / nama produk…"
+                className="h-10 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm font-medium outline-none focus:border-primary/40"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {list.map((p) => (
+              <Card key={p.id} p={p} canEdit={canEdit} />
+            ))}
+            {list.length === 0 && (
+              <p className="col-span-full py-10 text-center text-sm font-medium text-muted-foreground">Tidak ada produk cocok.</p>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Card({ p, canEdit }: { p: KatalogProduct; canEdit: boolean }) {
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [pending, start] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
+
+  async function onPick(file: File) {
+    setErr(null);
+    if (!file.type.startsWith("image/")) { setErr("File harus gambar."); return; }
+    if (file.size > 5 * 1024 * 1024) { setErr("Maks 5 MB."); return; }
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `catalog/${p.id}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("catalog-images").upload(path, file, { upsert: false });
+      if (error) { setErr("Gagal upload. Pastikan bucket 'catalog-images' sudah dibuat."); setBusy(false); return; }
+      const { data } = supabase.storage.from("catalog-images").getPublicUrl(path);
+      const res = await setCatalogImage(p.id, data.publicUrl);
+      if (!res.ok) { setErr(res.error); setBusy(false); return; }
+      start(() => router.refresh());
+    } catch {
+      setErr("Terjadi kesalahan saat upload.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function remove() {
+    setErr(null);
+    start(async () => {
+      const res = await setCatalogImage(p.id, null);
+      if (res.ok) router.refresh(); else setErr(res.error);
+    });
+  }
+
+  return (
+    <div className="card overflow-hidden p-0">
+      <div className="group relative aspect-[3/4] w-full bg-muted">
+        {p.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-muted-foreground">
+            <ImagePlus className="h-7 w-7" />
+            <span className="text-xs font-semibold">Belum ada foto</span>
+          </div>
+        )}
+
+        {canEdit && (
+          <div className="absolute inset-x-0 bottom-0 flex gap-2 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition group-hover:opacity-100">
+            <button
+              onClick={() => inputRef.current?.click()}
+              disabled={busy || pending}
+              className="flex-1 rounded-lg bg-white/95 px-2 py-1.5 text-xs font-bold text-eerie disabled:opacity-60"
+            >
+              {busy ? "Mengunggah…" : p.image ? "Ganti Foto" : "Upload Foto"}
+            </button>
+            {p.image && (
+              <button
+                onClick={remove}
+                disabled={busy || pending}
+                className="rounded-lg bg-white/95 px-2 py-1.5 text-xs font-bold text-danger disabled:opacity-60"
+                title="Hapus foto"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); e.currentTarget.value = ""; }}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-1.5 p-3">
+        <span className="inline-block rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-muted-foreground">{p.code}</span>
+        <p className="text-sm font-bold leading-tight">{p.name}</p>
+        {p.sizes.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {p.sizes.map((s) => (
+              <span key={s} className="rounded border border-border px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground">{s}</span>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-sm font-extrabold">{p.retail > 0 ? formatIDR(p.retail) : "—"}</span>
+          <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Retail</span>
+        </div>
+        {err && <p className="text-xs font-semibold text-danger">{err}</p>}
+      </div>
+    </div>
+  );
+}
