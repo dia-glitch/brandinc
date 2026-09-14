@@ -10,6 +10,16 @@ const nextConfig = {
       { protocol: "https", hostname: "*.supabase.co" },
     ],
   },
+  // Cache navigasi sisi-klien (Router Cache). Halaman yang baru dibuka disimpan
+  // sebentar di browser → pindah/balik antar-tab jadi instan tanpa nembak server.
+  // dynamic: halaman dinamis (ada auth/DB) di-cache 30 dtk; static: 3 menit.
+  // Mutasi (server action + revalidatePath) tetap membatalkan cache, jadi data baru langsung tampil.
+  experimental: {
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
+  },
 };
 
 export default nextConfig;
