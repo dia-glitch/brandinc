@@ -236,6 +236,52 @@ export async function createGrnInvoice(receiptId: string): Promise<{ ok: true; i
   return { ok: true, invoiceNo };
 }
 
+export type InvoiceRefDoc = { name: string; url: string };
+export type InvoiceRefInput = { receiptId: string; supplierInvoiceNo: string; invoiceDate: string; invoiceDue: string; note: string; docs: InvoiceRefDoc[] };
+
+/**
+ * Buat/perbarui INVOICE REFERENCE (referensi penagihan) dari sebuah GRN yang sudah QC.
+ * Menyimpan nomor invoice ASLI supplier + lampiran dokumen (invoice asli, surat jalan, dll).
+ * Nomor referensi internal (invoice_no) tetap auto dari kode PO.
+ */
+export async function createInvoiceReference(input: InvoiceRefInput): Promise<{ ok: true; invoiceNo: string } | { ok: false; error: string }> {
+  const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fg_incoming_qc")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  const { data: r } = await supabase.from("fg_receipts").select("id,po_id,status,invoice_no").eq("id", input.receiptId).single();
+  if (!r) return { ok: false, error: "GRN tidak ditemukan." };
+  if (r.status === "inbound") return { ok: false, error: "QC batch ini belum diproses." };
+
+  const { data: lines } = await supabase.from("fg_receipt_lines").select("qty_good").eq("receipt_id", input.receiptId).is("deleted_at", null);
+  const good = (lines ?? []).reduce((s, l) => s + (Number(l.qty_good) || 0), 0);
+  if (good <= 0) return { ok: false, error: "Tidak ada Good pada batch ini." };
+
+  let invoiceNo = (r.invoice_no as string | null) ?? "";
+  if (!invoiceNo) {
+    const { data: po } = await supabase.from("production_pos").select("code").eq("id", r.po_id).maybeSingle();
+    const poCode = ((po?.code as string | undefined) ?? "PO").trim().toUpperCase();
+    const { count } = await supabase.from("fg_receipts").select("id", { count: "exact", head: true }).eq("po_id", r.po_id).not("invoice_no", "is", null);
+    const n = count ?? 0;
+    invoiceNo = n === 0 ? `INV-${poCode}` : `INV-${poCode}-${n + 1}`;
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const invoiceDate = /^\d{4}-\d{2}-\d{2}$/.test(input.invoiceDate) ? input.invoiceDate : today;
+  const invoiceDue = /^\d{4}-\d{2}-\d{2}$/.test(input.invoiceDue) ? input.invoiceDue : null;
+  const docs = (input.docs ?? []).filter((d) => d && d.url).map((d) => ({ name: d.name || "dokumen", url: d.url }));
+
+  const { error } = await supabase.from("fg_receipts").update({
+    invoice_no: invoiceNo,
+    supplier_invoice_no: input.supplierInvoiceNo?.trim() || null,
+    invoice_date: invoiceDate,
+    invoice_due: invoiceDue,
+    invoice_note: input.note?.trim() || null,
+    invoice_docs: docs,
+    updated_at: new Date().toISOString(),
+  }).eq("id", input.receiptId);
+  if (error) return { ok: false, error: error.message };
+  rv();
+  return { ok: true, invoiceNo };
+}
+
 /* ---------------- TAHAP 3: TERIMA REPAIR (buat batch inbound baru) ---------------- */
 
 export type RepairReturnLine = { sku: string; qtyBalik: number };

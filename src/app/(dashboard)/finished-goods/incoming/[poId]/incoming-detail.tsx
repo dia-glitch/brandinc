@@ -1,12 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
 import { ArrowLeft, Printer, FileText, Package, QrCode } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { createGrnInvoice } from "../actions";
 import { QCDialog } from "../qc-dialog";
 import { RepairDialog } from "../repair-dialog";
 import type { IncRow, IncLine } from "../incoming-list";
@@ -85,8 +81,6 @@ export function IncomingDetail({ info, rows, warehouses, canEdit }: { info: POIn
 }
 
 function BatchCard({ row, warehouses, canEdit }: { row: IncRow; warehouses: WarehouseOpt[]; canEdit: boolean }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
   const qtyIn = sum(row, (l) => num(l.qty_incoming));
   const good = sum(row, (l) => num(l.qty_good));
   const done = row.status !== "inbound";
@@ -110,7 +104,7 @@ function BatchCard({ row, warehouses, canEdit }: { row: IncRow; warehouses: Ware
             row.invoice_no ? (
               <a href={`/print/grninvoice/${row.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-50"><FileText className="h-4 w-4" /> Invoice {row.invoice_no}</a>
             ) : canEdit ? (
-              <Button variant="outline" size="sm" disabled={pending} onClick={() => start(async () => { const r = await createGrnInvoice(row.id); if (r.ok) { window.open(`/print/grninvoice/${row.id}`, "_blank"); router.refresh(); } })}><FileText className="h-4 w-4" /> Buat Invoice</Button>
+              <Link href="/finished-goods/invoice" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-muted"><FileText className="h-4 w-4" /> Buat Reference</Link>
             ) : null
           )}
           <a href={`/print/grn/${row.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground hover:bg-muted"><Printer className="h-4 w-4" /> Print</a>

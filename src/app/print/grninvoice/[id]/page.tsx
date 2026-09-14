@@ -12,7 +12,7 @@ export default async function GrnInvoicePrintPage({ params }: { params: { id: st
 
   const { data: r } = await supabase
     .from("fg_receipts")
-    .select("id,code,po_id,spk_id,brand_id,company_id,supplier_id,incoming_no,invoice_no,invoice_date")
+    .select("id,code,po_id,spk_id,brand_id,company_id,supplier_id,incoming_no,invoice_no,invoice_date,invoice_due,supplier_invoice_no,invoice_docs")
     .eq("id", params.id).is("deleted_at", null).single();
   if (!r) notFound();
   if (!r.invoice_no) {
@@ -55,6 +55,7 @@ export default async function GrnInvoicePrintPage({ params }: { params: { id: st
   } | null;
   const company = coRes.data?.legal_name ?? "Brand.Inc";
   const productName = lines[0]?.name ?? "—";
+  const docs = Array.isArray(r.invoice_docs) ? (r.invoice_docs as Array<{ name?: string; url?: string }>).map((d) => ({ name: d.name ?? "dokumen", url: d.url ?? "" })).filter((d) => d.url) : [];
 
   const subtotal = lines.reduce((s, l) => s + l.qty * l.price, 0);
   const totalQty = lines.reduce((s, l) => s + l.qty, 0);
@@ -67,7 +68,7 @@ export default async function GrnInvoicePrintPage({ params }: { params: { id: st
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-xl font-black">{company}</h1>
-          <p className="text-sm text-muted-foreground">Invoice Produksi (per GRN) · Tagihan Jasa Vendor</p>
+          <p className="text-sm text-muted-foreground">Invoice Reference · Referensi Penagihan Supplier</p>
         </div>
         <PrintButton />
       </div>
@@ -76,7 +77,8 @@ export default async function GrnInvoicePrintPage({ params }: { params: { id: st
         <div>
           <p className="text-2xl font-black tracking-tight">{r.invoice_no}</p>
           <p className="mt-1 text-lg font-bold">{productName}</p>
-          <p className="text-sm text-muted-foreground">Tanggal: {(r.invoice_date as string) ?? "—"}</p>
+          <p className="text-sm text-muted-foreground">Tanggal: {(r.invoice_date as string) ?? "—"}{r.invoice_due ? ` · Jatuh tempo: ${r.invoice_due as string}` : ""}</p>
+          {r.supplier_invoice_no ? <p className="text-sm">No. Invoice Supplier: <b>{r.supplier_invoice_no as string}</b></p> : <p className="text-sm text-amber-600">Invoice asli supplier belum dilampirkan</p>}
         </div>
         <div className="text-right text-sm">
           <p className="font-bold">GRN: <span className="font-mono">{r.code}</span> (batch {r.incoming_no as number})</p>
@@ -154,7 +156,21 @@ export default async function GrnInvoicePrintPage({ params }: { params: { id: st
         </div>
       </div>
 
-      <p className="mt-6 text-xs text-muted-foreground">
+      {docs.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-1 text-xs font-black uppercase tracking-wide text-muted-foreground">Lampiran ({docs.length})</p>
+          <div className="flex flex-wrap gap-2">
+            {docs.map((d, i) => (
+              <a key={i} href={d.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold">{d.name}</a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="mt-4 text-xs italic text-muted-foreground">
+        Dokumen ini adalah <b>referensi penagihan</b>. Invoice asli/resmi diterbitkan oleh supplier dan menjadi lampiran wajib saat penagihan ke Finance.
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">
         Tagihan jasa atas GRN {r.code} (Good batch ini). Batch/repair lain ditagih terpisah per GRN masing-masing.
       </p>
     </div>
