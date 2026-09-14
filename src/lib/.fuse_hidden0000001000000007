@@ -107,7 +107,7 @@ export const canAct = (role: Role, key: PageKey): boolean => accessLevel(role, k
 
 /** Semua PageKey yang bisa diatur di grid (settings dikecualikan -> selalu admin-only). */
 export const PAGE_KEYS: PageKey[] = [
-  "dashboard", "master_data", "inventory", "product_lifecycle",
+  "dashboard", "master_data", "inventory",
   "sales_penjualan", "sales_penerimaan",
   "rm_stock", "rm_create", "rm_po", "rm_penerimaan", "rm_cash",
   "prod_product", "prod_spk", "prod_po", "prod_material_issue", "prod_cogm",
@@ -116,7 +116,7 @@ export const PAGE_KEYS: PageKey[] = [
 ];
 
 export const PAGE_LABEL: Record<PageKey, string> = {
-  dashboard: "Dashboard", master_data: "Master Data", inventory: "Inventory", product_lifecycle: "Lifecycle Produk",
+  dashboard: "Dashboard", master_data: "Master Data", inventory: "Inventory",
   sales_penjualan: "Penjualan", sales_penerimaan: "Penerimaan Bayar",
   rm_stock: "RM Stock", rm_create: "RM Master", rm_po: "RM PO", rm_penerimaan: "RM Penerimaan", rm_cash: "RM Cash",
   prod_product: "Produk", prod_spk: "SPK", prod_po: "Produksi PO", prod_material_issue: "Material Issue", prod_cogm: "COGM",
@@ -128,7 +128,7 @@ export const PAGE_LABEL: Record<PageKey, string> = {
 
 /** Grup kolom untuk grid (biar terbaca per-modul). */
 export const PAGE_GROUPS: { label: string; keys: PageKey[] }[] = [
-  { label: "Umum", keys: ["dashboard", "master_data", "inventory", "product_lifecycle"] },
+  { label: "Umum", keys: ["dashboard", "master_data", "inventory"] },
   { label: "Sales", keys: ["sales_penjualan", "sales_penerimaan"] },
   { label: "Raw Material", keys: ["rm_stock", "rm_create", "rm_po", "rm_penerimaan", "rm_cash"] },
   { label: "Produksi", keys: ["prod_product", "prod_spk", "prod_po", "prod_material_issue", "prod_cogm"] },
@@ -166,7 +166,6 @@ const ROUTE_MAP: [string, PageKey][] = [
   ["/production", "prod_product"],
   ["/distribution", "dist_submit"],
   ["/settings", "settings"],
-  ["/lifecycle", "product_lifecycle"],
   ["/bi", "dashboard"],
   ["/panduan", "dashboard"],
 ];

@@ -166,7 +166,6 @@ const ROUTE_MAP: [string, PageKey][] = [
   ["/production", "prod_product"],
   ["/distribution", "dist_submit"],
   ["/settings", "settings"],
-  ["/lifecycle", "product_lifecycle"],
   ["/bi", "dashboard"],
   ["/panduan", "dashboard"],
 ];
