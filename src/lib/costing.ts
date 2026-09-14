@@ -1,14 +1,21 @@
-import type { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createReadClient } from "@/lib/supabase/read";
 
-type SB = ReturnType<typeof createClient>;
 export type SkuCost = { cogm: number; retail: number; locked: boolean };
 
 /**
  * Hitung COGM/pcs & retail per SKU dari data operasional (sumber sama dgn page COGM).
  * COGM = (total material issue + total WIP) ÷ total good, diagregat lintas SPK yg
- * memproduksi SKU tsb. Dipakai bersama oleh Inventory & Finished Goods.
+ * memproduksi SKU tsb. Dipakai bersama oleh Inventory, Finished Goods, Sales, dll.
+ *
+ * PERF: perhitungan ini berat (7 query + agregasi) dan dipanggil di banyak page.
+ * Hasilnya di-cache (unstable_cache) selama 60 dtk memakai client TANPA cookie,
+ * jadi pindah tab/page tidak menembak DB berulang. Angka biaya bisa telat maks
+ * 1 menit setelah ada perubahan produksi; qty stok & penjualan tetap real-time
+ * karena dihitung terpisah di masing-masing page.
  */
-export async function getSkuCosting(supabase: SB): Promise<Map<string, SkuCost>> {
+async function computeSkuCosting(): Promise<Array<[string, SkuCost]>> {
+  const supabase = createReadClient();
   const [spkRes, spkLineRes, miRes, miLineRes, poRes, poLineRes, costRes] = await Promise.all([
     supabase.from("work_orders").select("id,code,status").is("deleted_at", null).order("code", { ascending: false }),
     supabase.from("work_order_lines").select("spk_id,sku").is("deleted_at", null),
@@ -44,7 +51,7 @@ export async function getSkuCosting(supabase: SB): Promise<Map<string, SkuCost>>
     skuSpks.set(sku, arr);
   });
 
-  const out = new Map<string, SkuCost>();
+  const out: Array<[string, SkuCost]> = [];
   for (const [sku, spks] of skuSpks) {
     let cost = 0, good = 0;
     for (const s of spks) { cost += (materialBySpk.get(s) ?? 0) + (wipBySpk.get(s) ?? 0); good += goodBySpk.get(s) ?? 0; }
@@ -53,7 +60,23 @@ export async function getSkuCosting(supabase: SB): Promise<Map<string, SkuCost>>
     for (const s of spks.slice().sort((a, b) => (rank.get(a) ?? 9999) - (rank.get(b) ?? 9999))) {
       const c = costBySpk.get(s); if (c && c.retail > 0) { retail = c.retail; locked = c.locked; break; }
     }
-    out.set(sku, { cogm, retail, locked });
+    out.push([sku, { cogm, retail, locked }]);
   }
   return out;
+}
+
+// unstable_cache menyimpan hasil (JSON-serializable → array of entries, bukan Map)
+// di Data Cache Next selama 60 dtk. Tag "costing" untuk invalidasi manual bila perlu.
+const cachedCosting = unstable_cache(computeSkuCosting, ["sku-costing-v1"], {
+  revalidate: 60,
+  tags: ["costing"],
+});
+
+/**
+ * Ambil peta COGM/retail per SKU (dari cache). Param supabase tidak lagi dipakai
+ * (dipertahankan agar pemanggil lama tetap kompatibel) — perhitungan memakai
+ * client read-only internal supaya bisa di-cache.
+ */
+export async function getSkuCosting(_supabase?: unknown): Promise<Map<string, SkuCost>> {
+  return new Map(await cachedCosting());
 }
