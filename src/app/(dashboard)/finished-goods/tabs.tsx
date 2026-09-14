@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { label: "Stok", href: "/finished-goods" },
   { label: "Incoming & QC", href: "/finished-goods/incoming" },
+  { label: "Invoice", href: "/finished-goods/invoice" },
 ];
 
 export function FinishedGoodsTabs() {
