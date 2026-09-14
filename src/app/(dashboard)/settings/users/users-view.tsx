@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ROLE_OPTIONS, ROLE_LABEL, type Role } from "@/lib/permissions";
@@ -29,17 +30,20 @@ export function UsersView({ rows, meId }: { rows: UserRow[]; meId: string | null
 }
 
 function Row({ u, isMe }: { u: UserRow; isMe: boolean }) {
+  const router = useRouter();
   const [role, setRole] = useState<Role>((u.role as Role) ?? "staff");
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  const dirty = role !== u.role;
+  // Role belum termasuk daftar yang bisa dipilih (mis. "staff" = belum diatur).
+  const isKnown = ROLE_OPTIONS.some((r) => r.value === role);
+  const dirty = isKnown && role !== u.role;
 
   function save() {
     setErr(null); setSaved(false);
     start(async () => {
       const res = await updateUserRole(u.id, role);
-      if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+      if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2500); router.refresh(); }
       else { setErr(res.error ?? "Gagal menyimpan."); setRole((u.role as Role) ?? "staff"); }
     });
   }
@@ -62,6 +66,7 @@ function Row({ u, isMe }: { u: UserRow; isMe: boolean }) {
           disabled={pending}
           className="h-9 w-full max-w-[220px] rounded-lg border border-border bg-surface px-2.5 text-sm font-semibold outline-none focus:border-primary/40"
         >
+          {!isKnown && <option value={role} disabled>— Belum diatur, pilih role —</option>}
           {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
         {err && <p className="mt-1 text-xs font-semibold text-danger">{err}</p>}
