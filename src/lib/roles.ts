@@ -2,6 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { type Role, type PageKey, accessLevel, canAct, canView, normalizeRole } from "@/lib/permissions";
 import { resolveRole } from "@/lib/roles-core";
+import { hydrateMatrix } from "@/lib/rbac";
 
 type SB = ReturnType<typeof createClient>;
 
@@ -11,10 +12,13 @@ export { resolveRole };
 /**
  * Ambil profil user aktif SEKALI per-render (di-cache React). Memanggil getRole /
  * getUserName / isAdmin berkali-kali dalam satu navigasi hanya menembak DB sekali.
+ * Sekaligus hydrate matriks RBAC (TTL-guarded) sebelum cek akses dijalankan.
  */
 const loadProfile = cache(async (): Promise<{ role: Role; name: string }> => {
   try {
     const supabase = createClient();
+    // Muat override matriks akses dari DB (default -> DB) sebelum canView/canAct dipakai.
+    await hydrateMatrix(supabase);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { role: "staff", name: "" };
     const { data: prof, error } = await supabase.from("user_profiles").select("role,name,email").eq("id", user.id).maybeSingle();

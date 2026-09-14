@@ -4,7 +4,7 @@ import { Topbar } from "@/components/shell/topbar";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getRole } from "@/lib/roles";
-import type { Role } from "@/lib/permissions";
+import { canView, PAGE_KEYS, type PageKey, type Role } from "@/lib/permissions";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   let role: Role = "admin";
@@ -31,12 +31,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
       // tabel belum siap → abaikan, jangan blokir
     }
 
-    role = await getRole(supabase);
+    role = await getRole(supabase); // sekaligus hydrate matriks RBAC
   }
+
+  // Hitung daftar halaman yang boleh DILIHAT role ini (dari matriks efektif) & kirim
+  // ke Sidebar (client) supaya menu ikut override DB, bukan default hardcode.
+  const viewKeys: PageKey[] = [...PAGE_KEYS, "settings" as PageKey].filter((k) => canView(role, k));
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar role={role} />
+      <Sidebar viewKeys={viewKeys} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
         <main className="flex-1 overflow-x-hidden px-6 py-6 lg:px-8">{children}</main>

@@ -1,0 +1,45 @@
+import { redirect } from "next/navigation";
+import { SettingsTabs } from "../tabs";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getRole } from "@/lib/roles";
+import { accessLevel, MATRIX_ROLES, PAGE_GROUPS, PAGE_LABEL, ROLE_LABEL, type PageKey } from "@/lib/permissions";
+import { AccessView } from "./access-view";
+import type { Cell } from "./actions";
+
+export default async function AccessPage() {
+  if (isSupabaseConfigured()) {
+    const role = await getRole(createClient()); // sekaligus hydrate matriks efektif
+    if (role !== "admin") redirect("/settings/users");
+  }
+
+  // Matriks awal (efektif = default ⊕ override DB) untuk semua role×halaman.
+  const initial: Record<string, Record<string, Cell>> = {};
+  for (const r of MATRIX_ROLES) {
+    initial[r] = {};
+    for (const g of PAGE_GROUPS) for (const k of g.keys) {
+      initial[r][k] = (accessLevel(r, k as PageKey) ?? "none") as Cell;
+    }
+  }
+
+  const roles = MATRIX_ROLES.map((r) => ({ value: r as string, label: ROLE_LABEL[r] }));
+  const groups = PAGE_GROUPS.map((g) => ({
+    label: g.label,
+    keys: g.keys.map((k) => ({ key: k as string, label: PAGE_LABEL[k] })),
+  }));
+
+  return (
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <SettingsTabs />
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Settings</p>
+        <h1 className="text-2xl font-extrabold">🔐 Akses Halaman (View / Action)</h1>
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
+          Atur hak tiap role per halaman langsung dari sini — tidak lagi hardcode. <b>A</b> = lihat &amp; bisa aksi,
+          <b> L</b> = lihat saja, <b>·</b> = tanpa akses. Menu, blokir URL, dan tombol aksi otomatis mengikuti.
+        </p>
+      </div>
+      <AccessView roles={roles} groups={groups} initial={initial} />
+    </div>
+  );
+}

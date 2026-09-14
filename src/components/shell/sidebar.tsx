@@ -4,11 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV } from "./nav-config";
 import { cn } from "@/lib/utils";
-import { canView, pageKeyForPath, type Role } from "@/lib/permissions";
+import { pageKeyForPath, type PageKey } from "@/lib/permissions";
 
-export function Sidebar({ role = "admin" }: { role?: Role }) {
+/**
+ * Sidebar. `viewKeys` = daftar PageKey yang boleh dilihat user (dihitung di server
+ * dari matriks efektif, sudah termasuk override DB). Menu tampil bila salah satu
+ * sub-halaman item ada di viewKeys.
+ */
+export function Sidebar({ viewKeys }: { viewKeys: PageKey[] }) {
   const pathname = usePathname();
   const activeKey = pageKeyForPath(pathname);
+  const canSee = (k: PageKey) => viewKeys.includes(k);
 
   return (
     <aside className="hidden w-[248px] shrink-0 flex-col border-r border-border bg-surface p-4 md:flex">
@@ -20,9 +26,9 @@ export function Sidebar({ role = "admin" }: { role?: Role }) {
 
       <nav className="mt-2 flex-1 overflow-y-auto">
         {NAV.map((group) => {
-          // Untuk tiap item: sub-halaman pertama yang boleh dilihat role ini.
+          // Untuk tiap item: sub-halaman pertama yang boleh dilihat user ini.
           const items = group.items
-            .map((item) => ({ item, dest: item.pages.find((p) => canView(role, p.key)) }))
+            .map((item) => ({ item, dest: item.pages.find((p) => canSee(p.key)) }))
             .filter((x) => x.dest);
           if (items.length === 0) return null;
           return (

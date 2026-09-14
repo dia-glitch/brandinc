@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { pageKeyForPath, canViewPath } from "@/lib/permissions";
 import { resolveRole } from "@/lib/roles-core";
+import { hydrateMatrix } from "@/lib/rbac";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
@@ -35,6 +36,8 @@ export async function middleware(request: NextRequest) {
   // Penjaga akses per-halaman (RBAC). Rute tak-terjaga (login/print) → dibiarkan.
   const pageKey = pageKeyForPath(request.nextUrl.pathname);
   if (pageKey && user) {
+    // Muat override matriks (TTL-guarded) sebelum cek canViewPath.
+    await hydrateMatrix(supabase);
     const role = await resolveRole(supabase, user.id);
     if (!canViewPath(role, request.nextUrl.pathname)) {
       const url = request.nextUrl.clone();

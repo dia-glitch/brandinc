@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { label: "Pengguna & Role", href: "/settings/users" },
+  { label: "Akses Halaman", href: "/settings/access" },
   { label: "Data Management", href: "/settings/data" },
 ];
 
