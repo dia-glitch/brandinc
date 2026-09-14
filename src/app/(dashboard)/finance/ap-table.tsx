@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useMemo, useTransition, Fragment } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { X, Wallet, Paperclip, FileText, Printer, PackageCheck } from "lucide-react";
+import { X, Wallet, FileText, Printer, PackageCheck, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ListFilter } from "@/components/ui/list-filter";
-import { cn, formatIDR } from "@/lib/utils";
+import { formatIDR } from "@/lib/utils";
+import { Modal, Field } from "@/components/ui/modal";
 import { payInvoice } from "./actions";
 
 export type Payable = {
@@ -21,7 +22,7 @@ export function APTable({ rows, accounts, canEdit = true }: { rows: Payable[]; a
   const [brandFilter, setBrandFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [pay, setPay] = useState<Payable | null>(null);
-  const [openDoc, setOpenDoc] = useState<string | null>(null);
+  const [detail, setDetail] = useState<Payable | null>(null);
 
   const brandOpts = useMemo(() => Array.from(new Set(rows.map((r) => r.brand))).filter((b) => b && b !== "—").sort(), [rows]);
   const query = q.trim().toLowerCase();
@@ -66,60 +67,25 @@ export function APTable({ rows, accounts, canEdit = true }: { rows: Payable[]; a
               </tr>
             </thead>
             <tbody>
-              {list.map((r) => {
-                const out = Math.max(0, r.total - r.paid);
-                const isOpen = openDoc === r.key;
-                return (
-                  <Fragment key={r.key}>
-                  <tr className="border-t border-border font-semibold hover:bg-muted/40">
-                    <td className="py-2.5 pl-4 pr-3 font-mono text-xs">{r.invoiceNo}</td>
-                    <td className="py-2.5 pr-3 font-medium text-muted-foreground">{r.refType === "production_invoice" ? "Jasa Produksi" : "Bahan"}</td>
-                    <td className="py-2.5 pr-3">{r.party}</td>
-                    <td className="py-2.5 pr-3 font-medium text-muted-foreground">{r.brand}</td>
-                    <td className="py-2.5 pr-3 font-medium text-muted-foreground">{r.invoiceDate ?? "—"}</td>
-                    <td className="py-2.5 pr-3 text-right tabular-nums">{formatIDR(r.total)}</td>
-                    <td className="py-2.5 pr-3 text-right tabular-nums text-emerald-700">{r.paid > 0 ? formatIDR(r.paid) : "—"}</td>
-                    <td className="py-2.5 pr-3">{r.status === "paid" ? <Badge tone="success">Lunas</Badge> : r.status === "partial" ? <Badge tone="accent">Sebagian</Badge> : <Badge tone="danger">Belum</Badge>}</td>
-                    <td className="py-2.5 pr-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => setOpenDoc(isOpen ? null : r.key)} title="Lampiran dokumen"
-                          className={cn("inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold", isOpen ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted")}>
-                          <Paperclip className="h-4 w-4" /> Dokumen
-                        </button>
-                        {canEdit && out > 0 && <Button variant="ghost" size="sm" onClick={() => setPay(r)}><Wallet className="h-4 w-4" /> Bayar</Button>}
-                      </div>
-                    </td>
-                  </tr>
-                  {isOpen && (
-                    <tr className="bg-muted/20">
-                      <td colSpan={9} className="px-5 py-3">
-                        <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Lampiran untuk verifikasi</p>
-                        <div className="flex flex-wrap gap-2">
-                          {r.refType === "material_invoice" ? (
-                            <>
-                              <DocLink href={`/print/po/${r.poId}`} icon={<Printer className="h-4 w-4" />} label="PO Awal" />
-                              <DocLink href={`/print/invoice/${r.poId}`} icon={<FileText className="h-4 w-4" />} label="Invoice Detail" />
-                            </>
-                          ) : (
-                            <>
-                              <DocLink href={`/print/prodpo/${r.prodPoId}`} icon={<Printer className="h-4 w-4" />} label="PO Produksi" />
-                              <DocLink href={`/print/grn/${r.receiptId}`} icon={<PackageCheck className="h-4 w-4" />} label="GR / Penerimaan (GRN)" />
-                              <DocLink href={`/print/grninvoice/${r.receiptId}`} icon={<FileText className="h-4 w-4" />} label="Invoice Detail" />
-                            </>
-                          )}
-                        </div>
-                        <p className="mt-2 text-xs font-medium text-muted-foreground">Tiap dokumen bisa dibuka (view) &amp; disimpan PDF lewat tombol Print di halamannya.</p>
-                      </td>
-                    </tr>
-                  )}
-                  </Fragment>
-                );
-              })}
+              {list.map((r) => (
+                <tr key={r.key} className="border-t border-border font-semibold hover:bg-muted/40">
+                  <td className="py-2.5 pl-4 pr-3 font-mono text-xs">{r.invoiceNo}</td>
+                  <td className="py-2.5 pr-3 font-medium text-muted-foreground">{r.refType === "production_invoice" ? "Jasa Produksi" : "Bahan"}</td>
+                  <td className="py-2.5 pr-3">{r.party}</td>
+                  <td className="py-2.5 pr-3 font-medium text-muted-foreground">{r.brand}</td>
+                  <td className="py-2.5 pr-3 font-medium text-muted-foreground">{r.invoiceDate ?? "\u2014"}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums">{formatIDR(r.total)}</td>
+                  <td className="py-2.5 pr-3 text-right tabular-nums text-emerald-700">{r.paid > 0 ? formatIDR(r.paid) : "\u2014"}</td>
+                  <td className="py-2.5 pr-3">{r.status === "paid" ? <Badge tone="success">Lunas</Badge> : r.status === "partial" ? <Badge tone="accent">Sebagian</Badge> : <Badge tone="danger">Belum</Badge>}</td>
+                  <td className="py-2.5 pr-4 text-right"><Button variant="outline" size="sm" onClick={() => setDetail(r)}><Eye className="h-4 w-4" /> Detail</Button></td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       )}
 
+      {detail && <APDetailModal payable={detail} canEdit={canEdit} onClose={() => setDetail(null)} onPay={() => { const r = detail; setDetail(null); setPay(r); }} />}
       {pay && <PayDialog payable={pay} accounts={accounts} onClose={() => setPay(null)} />}
     </div>
   );
@@ -131,6 +97,54 @@ function DocLink({ href, icon, label }: { href: string; icon: React.ReactNode; l
       className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2 text-sm font-bold hover:bg-muted">
       {icon} {label}
     </a>
+  );
+}
+
+function APDetailModal({ payable, canEdit, onClose, onPay }: { payable: Payable; canEdit: boolean; onClose: () => void; onPay: () => void }) {
+  const r = payable;
+  const out = Math.max(0, r.total - r.paid);
+  const footer = (
+    <>
+      {canEdit && out > 0 && <Button size="sm" onClick={onPay}><Wallet className="h-4 w-4" /> Bayar</Button>}
+      <Button size="sm" variant="ghost" onClick={onClose}>Tutup</Button>
+    </>
+  );
+  return (
+    <Modal
+      size="lg"
+      onClose={onClose}
+      badge={r.status === "paid" ? <Badge tone="success">Lunas</Badge> : r.status === "partial" ? <Badge tone="accent">Sebagian</Badge> : <Badge tone="danger">Belum Bayar</Badge>}
+      title={<span className="font-mono">{r.invoiceNo}</span>}
+      subtitle={r.refType === "production_invoice" ? "Jasa Produksi" : "Bahan / Material"}
+      footer={footer}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Supplier / Vendor">{r.party}</Field>
+        <Field label="Brand">{r.brand}</Field>
+        <Field label="Tgl Invoice">{r.invoiceDate ?? "\u2014"}</Field>
+        <Field label="Total">{formatIDR(r.total)}</Field>
+        <Field label="Dibayar">{r.paid > 0 ? formatIDR(r.paid) : "\u2014"}</Field>
+        <Field label="Outstanding">{formatIDR(out)}</Field>
+      </div>
+      <div>
+        <p className="mb-1.5 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Dokumen untuk verifikasi</p>
+        <div className="flex flex-wrap gap-2">
+          {r.refType === "material_invoice" ? (
+            <>
+              <DocLink href={`/print/po/${r.poId}`} icon={<Printer className="h-4 w-4" />} label="PO Awal" />
+              <DocLink href={`/print/invoice/${r.poId}`} icon={<FileText className="h-4 w-4" />} label="Invoice Detail" />
+            </>
+          ) : (
+            <>
+              <DocLink href={`/print/prodpo/${r.prodPoId}`} icon={<Printer className="h-4 w-4" />} label="PO Produksi" />
+              <DocLink href={`/print/grn/${r.receiptId}`} icon={<PackageCheck className="h-4 w-4" />} label="GR / Penerimaan (GRN)" />
+              <DocLink href={`/print/grninvoice/${r.receiptId}`} icon={<FileText className="h-4 w-4" />} label="Invoice Detail" />
+            </>
+          )}
+        </div>
+        <p className="mt-2 text-xs font-medium text-muted-foreground">Tiap dokumen bisa dibuka (view) &amp; disimpan PDF lewat tombol Print di halamannya.</p>
+      </div>
+    </Modal>
   );
 }
 

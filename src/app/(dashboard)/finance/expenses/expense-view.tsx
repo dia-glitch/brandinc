@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Trash2, Wallet } from "lucide-react";
+import { Plus, X, Trash2, Wallet, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ListFilter } from "@/components/ui/list-filter";
+import { Modal, Field } from "@/components/ui/modal";
 import { formatIDR } from "@/lib/utils";
 import { createExpense, deleteExpense, payExpense } from "../actions";
 
@@ -18,6 +19,7 @@ export function ExpenseView({ rows, categories, brands, accounts, userName = "",
   const [brandFilter, setBrandFilter] = useState("");
   const [open, setOpen] = useState(false);
   const [payRow, setPayRow] = useState<ExpenseRow | null>(null);
+  const [detailRow, setDetailRow] = useState<ExpenseRow | null>(null);
 
   const brandOpts = useMemo(() => Array.from(new Set(rows.map((r) => r.brand))).filter((b) => b && b !== "—").sort(), [rows]);
   const query = q.trim().toLowerCase();
@@ -68,11 +70,7 @@ export function ExpenseView({ rows, categories, brands, accounts, userName = "",
                   <td className="py-2.5 pr-3 text-right tabular-nums">{formatIDR(r.amount)}</td>
                   <td className="py-2.5 pr-3">{r.status === "paid" ? <Badge tone="success">Lunas</Badge> : <Badge tone="danger">Belum</Badge>}</td>
                   <td className="py-2.5 pr-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {canEdit && r.status !== "paid" && <Button variant="ghost" size="sm" onClick={() => setPayRow(r)}><Wallet className="h-4 w-4" /> Bayar</Button>}
-                      {canEdit && <DeleteBtn id={r.id} />}
-                      {!canEdit && <span className="text-xs font-medium text-muted-foreground">—</span>}
-                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setDetailRow(r)}><Eye className="h-4 w-4" /> Detail</Button>
                   </td>
                 </tr>
               ))}
@@ -82,22 +80,10 @@ export function ExpenseView({ rows, categories, brands, accounts, userName = "",
       )}
 
       {open && <ExpenseForm categories={categories} brands={brands} userName={userName} onClose={() => setOpen(false)} />}
+      {detailRow && <ExpenseDetailModal row={detailRow} canEdit={canEdit} onClose={() => setDetailRow(null)} onPay={() => { const r = detailRow; setDetailRow(null); setPayRow(r); }} />}
       {payRow && <PayExpenseDialog row={payRow} accounts={accounts} onClose={() => setPayRow(null)} />}
     </div>
   );
-}
-
-function DeleteBtn({ id }: { id: string }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [confirm, setConfirm] = useState(false);
-  if (confirm) return (
-    <span className="inline-flex items-center gap-1">
-      <button className="rounded-lg bg-danger px-2 py-1 text-xs font-bold text-white" disabled={pending} onClick={() => startTransition(async () => { await deleteExpense(id); router.refresh(); })}>Hapus?</button>
-      <button className="rounded-lg border border-border px-2 py-1 text-xs font-bold" onClick={() => setConfirm(false)}>Tidak</button>
-    </span>
-  );
-  return <Button variant="ghost" size="icon" onClick={() => setConfirm(true)} title="Hapus"><Trash2 className="h-4 w-4" /></Button>;
 }
 
 function ExpenseForm({ categories, brands, userName, onClose }: { categories: string[]; brands: BrandOpt[]; userName: string; onClose: () => void }) {
@@ -170,6 +156,53 @@ function ExpenseForm({ categories, brands, userName, onClose }: { categories: st
         </form>
       </div>
     </div>
+  );
+}
+
+function ExpenseDetailModal({ row, canEdit, onClose, onPay }: { row: ExpenseRow; canEdit: boolean; onClose: () => void; onPay: () => void }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [confirm, setConfirm] = useState(false);
+  const paid = row.status === "paid";
+  function del() { startTransition(async () => { await deleteExpense(row.id); onClose(); router.refresh(); }); }
+
+  const footer = (
+    <>
+      {canEdit && !paid && <Button size="sm" onClick={onPay}><Wallet className="h-4 w-4" /> Bayar</Button>}
+      {canEdit && (confirm
+        ? <Button size="sm" variant="danger" disabled={pending} onClick={del}>Yakin hapus?</Button>
+        : <Button size="sm" variant="ghost" onClick={() => setConfirm(true)}><Trash2 className="h-4 w-4" /> Hapus</Button>)}
+      <Button size="sm" variant="ghost" onClick={onClose}>Tutup</Button>
+    </>
+  );
+
+  return (
+    <Modal
+      size="lg"
+      onClose={onClose}
+      badge={paid ? <Badge tone="success">Lunas</Badge> : <Badge tone="danger">Belum Bayar</Badge>}
+      title={row.category}
+      subtitle={row.date ?? undefined}
+      footer={footer}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Tanggal">{row.date ?? "—"}</Field>
+        <Field label="Kategori">{row.category}</Field>
+        <Field label="Pemohon (PIC)">{row.requester || "—"}</Field>
+        <Field label="Brand">{row.brand}</Field>
+        <Field label="Nominal">{formatIDR(row.amount)}</Field>
+      </div>
+      <div className="rounded-xl border border-border p-3">
+        <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Rekening Tujuan (Vendor/Penerima)</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Nama Vendor / Penerima">{row.payee || "—"}</Field>
+          <Field label="Bank">{row.vendorBank || "—"}</Field>
+          <Field label="No. Rekening" mono>{row.vendorAccountNo || "—"}</Field>
+          <Field label="Atas Nama">{row.vendorAccountHolder || "—"}</Field>
+        </div>
+      </div>
+      {row.notes && <Field label="Catatan">{row.notes}</Field>}
+    </Modal>
   );
 }
 

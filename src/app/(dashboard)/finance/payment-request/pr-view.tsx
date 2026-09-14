@@ -2,11 +2,12 @@
 
 import { useState, useMemo, useTransition, Fragment } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Paperclip, Upload, FileText, ChevronRight, Wallet, Check, CalendarClock, Ban, ClipboardCheck, Trash2 } from "lucide-react";
+import { Plus, X, Paperclip, Upload, FileText, Wallet, Check, CalendarClock, Ban, ClipboardCheck, Trash2, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ListFilter } from "@/components/ui/list-filter";
-import { cn, formatIDR } from "@/lib/utils";
+import { formatIDR } from "@/lib/utils";
+import { Modal, Field } from "@/components/ui/modal";
 import { createClient } from "@/lib/supabase/client";
 import { createPR, submitPR, reviewPR, approvePR, rejectPR, schedulePR, payPR, settleCashAdvance, deletePR, addAttachment, type Attachment } from "./actions";
 
@@ -79,7 +80,6 @@ export function PRView({ rows, brands, accounts, categories, canManage = true, c
           <table className="w-full min-w-[1120px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                <th className="w-8 py-2.5 pl-4"></th>
                 <th className="py-2.5 pr-3">No. PR</th>
                 <th className="py-2.5 pr-3">Jenis</th>
                 <th className="py-2.5 pr-3">Deskripsi</th>
@@ -88,7 +88,7 @@ export function PRView({ rows, brands, accounts, categories, canManage = true, c
                 <th className="py-2.5 pr-3">Brand</th>
                 <th className="py-2.5 pr-3 text-right">Nominal</th>
                 <th className="py-2.5 pr-3">Status</th>
-                <th className="py-2.5 pr-4 text-right">Lampiran</th>
+                <th className="py-2.5 pr-4 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -104,19 +104,14 @@ export function PRView({ rows, brands, accounts, categories, canManage = true, c
 }
 
 function PRRowItem({ row, accounts, canManage = true, canSubmit = true }: { row: PRRow; accounts: AccountOpt[]; canManage?: boolean; canSubmit?: boolean }) {
-  const router = useRouter();
-  const [openRow, setOpenRow] = useState(false);
-  const [pending, startTransition] = useTransition();
+  const [detail, setDetail] = useState(false);
   const [dialog, setDialog] = useState<null | "pay" | "schedule" | "settle">(null);
   const st = STATUS[row.status] ?? STATUS.draft;
-
-  const act = (fn: () => Promise<{ ok: boolean }>) => startTransition(async () => { await fn(); router.refresh(); });
 
   return (
     <Fragment>
       <tr className="border-t border-border font-semibold hover:bg-muted/40">
-        <td className="py-2.5 pl-4"><button onClick={() => setOpenRow((o) => !o)} className="grid h-6 w-6 place-items-center rounded-lg hover:bg-muted"><ChevronRight className={cn("h-4 w-4 transition-transform", openRow && "rotate-90")} /></button></td>
-        <td className="py-2.5 pr-3 font-mono text-xs">{row.code}</td>
+        <td className="py-2.5 pl-4 pr-3 font-mono text-xs">{row.code}</td>
         <td className="py-2.5 pr-3 font-medium text-muted-foreground">{TYPE_LABEL[row.type] ?? row.type}</td>
         <td className="py-2.5 pr-3">{row.title || "—"}</td>
         <td className="py-2.5 pr-3 font-medium text-muted-foreground">{row.requester || "—"}</td>
@@ -124,53 +119,85 @@ function PRRowItem({ row, accounts, canManage = true, canSubmit = true }: { row:
         <td className="py-2.5 pr-3 font-medium text-muted-foreground">{row.brand}</td>
         <td className="py-2.5 pr-3 text-right tabular-nums">{formatIDR(row.amount)}</td>
         <td className="py-2.5 pr-3"><Badge tone={st.tone}>{st.label}</Badge></td>
-        <td className="py-2.5 pr-4 text-right text-xs font-bold text-muted-foreground">{row.attachments.length > 0 ? <span className="inline-flex items-center gap-1"><Paperclip className="h-3.5 w-3.5" /> {row.attachments.length}</span> : "—"}</td>
+        <td className="py-2.5 pr-4 text-right">
+          <div className="flex items-center justify-end gap-2">
+            {row.attachments.length > 0 && <span className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground"><Paperclip className="h-3.5 w-3.5" /> {row.attachments.length}</span>}
+            <Button size="sm" variant="outline" onClick={() => setDetail(true)}><Eye className="h-4 w-4" /> Detail</Button>
+          </div>
+        </td>
       </tr>
-      {openRow && (
-        <tr className="bg-muted/20">
-          <td colSpan={10} className="px-5 py-3">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Detail</p>
-                <p className="mt-1 text-sm">Pemohon (PIC): <b>{row.requester || "—"}</b></p>
-                <p className="text-sm">Kategori: <b>{row.category || "—"}</b></p>
-                {row.settledAmount != null && <p className="text-sm">Realisasi: <b>{formatIDR(row.settledAmount)}</b></p>}
-                {row.scheduledDate && <p className="text-sm">Jadwal bayar: <b>{row.scheduledDate}</b></p>}
-                {row.notes && <p className="text-sm text-muted-foreground">Catatan: {row.notes}</p>}
-                <p className="mt-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Rekening Vendor</p>
-                <p className="text-sm"><b>{row.payee || "—"}</b>{row.vendorBank ? ` · ${row.vendorBank}` : ""}</p>
-                {(row.vendorAccountNo || row.vendorAccountHolder) && <p className="text-sm text-muted-foreground">{row.vendorAccountNo || "—"}{row.vendorAccountHolder ? ` · a.n. ${row.vendorAccountHolder}` : ""}</p>}
-              </div>
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Lampiran</p>
-                <div className="mt-1 flex flex-wrap gap-2">
-                  {row.attachments.length === 0 ? <span className="text-sm text-muted-foreground">Belum ada.</span> : row.attachments.map((a, i) => (
-                    <a key={i} href={a.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-bold hover:bg-muted"><FileText className="h-3.5 w-3.5" /> {a.kind || "file"}</a>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {row.status === "draft" && canSubmit && <><Button size="sm" disabled={pending} onClick={() => act(() => submitPR(row.id))}><Check className="h-4 w-4" /> Ajukan</Button><DelBtn onDel={() => act(() => deletePR(row.id))} /></>}
-              {row.status === "submitted" && (canManage
-                ? <><Button size="sm" disabled={pending} onClick={() => act(() => reviewPR(row.id))}><ClipboardCheck className="h-4 w-4" /> Review (Finance)</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => rejectPR(row.id))}><Ban className="h-4 w-4" /> Tolak</Button></>
-                : <WaitNote />)}
-              {row.status === "reviewed" && (canManage
-                ? <><Button size="sm" disabled={pending} onClick={() => act(() => approvePR(row.id))}><Check className="h-4 w-4" /> Setujui</Button><Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => rejectPR(row.id))}><Ban className="h-4 w-4" /> Tolak</Button></>
-                : <WaitNote />)}
-              {row.status === "approved" && (canManage ? <Button size="sm" disabled={pending} onClick={() => setDialog("schedule")}><CalendarClock className="h-4 w-4" /> Jadwalkan</Button> : <WaitNote />)}
-              {row.status === "scheduled" && (canManage ? <Button size="sm" disabled={pending} onClick={() => setDialog("pay")}><Wallet className="h-4 w-4" /> Bayar</Button> : <WaitNote />)}
-              {row.status === "paid" && row.type === "cash_advance" && (canManage ? <Button size="sm" disabled={pending} onClick={() => setDialog("settle")}><ClipboardCheck className="h-4 w-4" /> Settlement</Button> : <span className="text-xs font-semibold text-muted-foreground">Menunggu settlement Finance</span>)}
-              <AttachBtn row={row} onDone={() => router.refresh()} />
-            </div>
-          </td>
-        </tr>
-      )}
+      {detail && <PRDetailModal row={row} canManage={canManage} canSubmit={canSubmit} onClose={() => setDetail(false)} onOpenDialog={(k) => { setDetail(false); setDialog(k); }} />}
       {dialog === "schedule" && <ScheduleDialog row={row} onClose={() => setDialog(null)} />}
       {dialog === "pay" && <PayDialog row={row} accounts={accounts} onClose={() => setDialog(null)} />}
       {dialog === "settle" && <SettleDialog row={row} accounts={accounts} onClose={() => setDialog(null)} />}
     </Fragment>
+  );
+}
+
+function PRDetailModal({ row, canManage, canSubmit, onClose, onOpenDialog }: { row: PRRow; canManage: boolean; canSubmit: boolean; onClose: () => void; onOpenDialog: (k: "pay" | "schedule" | "settle") => void }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const st = STATUS[row.status] ?? STATUS.draft;
+  const done = () => { onClose(); router.refresh(); };
+  const act = (fn: () => Promise<{ ok: boolean }>) => startTransition(async () => { await fn(); done(); });
+
+  const actions: React.ReactNode = (
+    <>
+      {row.status === "draft" && canSubmit && <><Button size="sm" disabled={pending} onClick={() => act(() => submitPR(row.id))}><Check className="h-4 w-4" /> Ajukan</Button><DelBtn onDel={() => act(() => deletePR(row.id))} /></>}
+      {row.status === "submitted" && (canManage
+        ? <><Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => rejectPR(row.id))}><Ban className="h-4 w-4" /> Tolak</Button><Button size="sm" disabled={pending} onClick={() => act(() => reviewPR(row.id))}><ClipboardCheck className="h-4 w-4" /> Review (Finance)</Button></>
+        : <WaitNote />)}
+      {row.status === "reviewed" && (canManage
+        ? <><Button size="sm" variant="outline" disabled={pending} onClick={() => act(() => rejectPR(row.id))}><Ban className="h-4 w-4" /> Tolak</Button><Button size="sm" disabled={pending} onClick={() => act(() => approvePR(row.id))}><Check className="h-4 w-4" /> Setujui</Button></>
+        : <WaitNote />)}
+      {row.status === "approved" && (canManage ? <Button size="sm" disabled={pending} onClick={() => onOpenDialog("schedule")}><CalendarClock className="h-4 w-4" /> Jadwalkan</Button> : <WaitNote />)}
+      {row.status === "scheduled" && (canManage ? <Button size="sm" disabled={pending} onClick={() => onOpenDialog("pay")}><Wallet className="h-4 w-4" /> Bayar</Button> : <WaitNote />)}
+      {row.status === "paid" && row.type === "cash_advance" && (canManage ? <Button size="sm" disabled={pending} onClick={() => onOpenDialog("settle")}><ClipboardCheck className="h-4 w-4" /> Settlement</Button> : <span className="text-xs font-semibold text-muted-foreground">Menunggu settlement Finance</span>)}
+      <Button size="sm" variant="ghost" onClick={onClose}>Tutup</Button>
+    </>
+  );
+
+  return (
+    <Modal
+      size="lg"
+      onClose={onClose}
+      badge={<Badge tone={st.tone}>{st.label}</Badge>}
+      title={<span className="font-mono">{row.code}</span>}
+      subtitle={`${TYPE_LABEL[row.type] ?? row.type}${row.title ? " · " + row.title : ""}`}
+      footer={actions}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Jenis">{TYPE_LABEL[row.type] ?? row.type}</Field>
+        <Field label="Kategori">{row.category || "—"}</Field>
+        <Field label="Pemohon (PIC)">{row.requester || "—"}</Field>
+        <Field label="Brand">{row.brand}</Field>
+        <Field label="Nominal">{formatIDR(row.amount)}</Field>
+        {row.scheduledDate && <Field label="Jadwal Bayar">{row.scheduledDate}</Field>}
+        {row.settledAmount != null && <Field label="Realisasi">{formatIDR(row.settledAmount)}</Field>}
+      </div>
+
+      <div className="rounded-xl border border-border p-3">
+        <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Rekening Tujuan (Vendor/Penerima)</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Nama Vendor / Penerima">{row.payee || "—"}</Field>
+          <Field label="Bank">{row.vendorBank || "—"}</Field>
+          <Field label="No. Rekening" mono>{row.vendorAccountNo || "—"}</Field>
+          <Field label="Atas Nama">{row.vendorAccountHolder || "—"}</Field>
+        </div>
+      </div>
+
+      {row.notes && <Field label="Catatan">{row.notes}</Field>}
+
+      <div>
+        <p className="mb-1.5 text-xs font-extrabold uppercase tracking-wide text-muted-foreground">Lampiran</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {row.attachments.length === 0 ? <span className="text-sm text-muted-foreground">Belum ada.</span> : row.attachments.map((a, i) => (
+            <a key={i} href={a.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-bold hover:bg-muted"><FileText className="h-3.5 w-3.5" /> {a.kind || "file"}</a>
+          ))}
+          <AttachBtn row={row} onDone={() => router.refresh()} />
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -358,17 +385,6 @@ function SettleDialog({ row, accounts, onClose }: { row: PRRow; accounts: Accoun
       <div className="flex justify-end gap-2.5 pt-1"><Button type="button" variant="ghost" size="sm" onClick={onClose}>Batal</Button>
         <Button size="sm" disabled={pending} onClick={() => startTransition(async () => { const r = await settleCashAdvance({ id: row.id, code: row.code, amount: row.amount, settledAmount: s, accountId, date, brandId: row.brandId, report: report ?? undefined }); if (!r.ok) { setError(r.error); return; } onClose(); router.refresh(); })}>Simpan Settlement</Button></div>
     </Modal>
-  );
-}
-
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-eerie/40 p-4">
-      <div className="w-full max-w-md space-y-4 rounded-2xl bg-surface p-6 shadow-soft">
-        <div className="flex items-center justify-between"><h2 className="text-lg font-extrabold">{title}</h2><button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button></div>
-        {children}
-      </div>
-    </div>
   );
 }
 
