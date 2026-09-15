@@ -6,6 +6,7 @@ import { X, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { submitQC } from "./actions";
+import { ScanButton } from "@/components/ui/barcode-scanner";
 import type { WarehouseOpt } from "./incoming-form";
 
 export type QCReceiptLine = {
@@ -31,6 +32,14 @@ export function QCDialog({ receipt, warehouses }: { receipt: QCReceipt; warehous
   const [goodWh, setGoodWh] = useState("");
   const [damageWh, setDamageWh] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
+  const [scanMsg, setScanMsg] = useState<string | null>(null);
+  function scanGood(code: string) {
+    const c = code.trim().toLowerCase();
+    const idx = rows.findIndex((r) => r.sku.toLowerCase() === c);
+    if (idx < 0) { setScanMsg(`SKU "${code}" tidak ada di batch ini.`); return; }
+    setRows((p) => p.map((r, i) => (i === idx ? { ...r, good: String(Math.min(r.incoming, (Number(r.good) || 0) + 1)) } : r)));
+    setScanMsg(`\u2713 ${rows[idx].sku} Good +1`);
+  }
 
   function openDialog() {
     setOpen(true);
@@ -42,7 +51,7 @@ export function QCDialog({ receipt, warehouses }: { receipt: QCReceipt; warehous
       good: "", repair: "", damage: "",
     })));
   }
-  function close() { setOpen(false); setError(null); }
+  function close() { setOpen(false); setError(null); setScanMsg(null); }
   function setRow(i: number, f: "good" | "repair" | "damage", v: string) { setRows((p) => p.map((r, idx) => (idx === i ? { ...r, [f]: v } : r))); }
 
   const tot = useMemo(() => {
@@ -79,7 +88,7 @@ export function QCDialog({ receipt, warehouses }: { receipt: QCReceipt; warehous
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-eerie/40 p-4">
-          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-surface p-6 text-left shadow-soft">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-surface p-4 text-left shadow-soft sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-extrabold">Proses QC · <span className="font-mono text-base">{receipt.code}</span></h2>
               <button onClick={close} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
@@ -103,6 +112,11 @@ export function QCDialog({ receipt, warehouses }: { receipt: QCReceipt; warehous
                     </select>
                   </div>
                 )}
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <ScanButton onScan={scanGood} label="Scan barang Good (kamera/USB)" />
+                {scanMsg && <p className={"text-sm font-semibold " + (scanMsg.startsWith("\u2713") ? "text-emerald-600" : "text-danger")}>{scanMsg}</p>}
               </div>
 
               <div className="rounded-xl border border-border p-3">

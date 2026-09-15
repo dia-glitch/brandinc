@@ -25,8 +25,8 @@ const Production: NavItem = { label: "Production", icon: Factory, pages: [
   { key: "prod_cogm", href: "/production/cogm" },
 ] };
 const FinishedGoods: NavItem = { label: "Finished Goods", icon: Store, pages: [
-  { key: "fg_stock", href: "/finished-goods" },
   { key: "fg_incoming_qc", href: "/finished-goods/incoming" },
+  { key: "fg_stock", href: "/finished-goods" },
 ] };
 const Invoice: NavItem = { label: "Invoice", icon: Receipt, pages: [{ key: "fg_stock", href: "/finished-goods/invoice" }] };
 const Inventory: NavItem = { label: "Inventory", icon: Warehouse, pages: [{ key: "inventory", href: "/inventory" }] };

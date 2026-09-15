@@ -7,6 +7,7 @@ import { ArrowLeft, Printer, FileText, Package, QrCode, CheckCircle2, RotateCcw,
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { closePO, createInbound } from "../actions";
+import { ScanButton } from "@/components/ui/barcode-scanner";
 import { QCDialog } from "../qc-dialog";
 import { RepairDialog } from "../repair-dialog";
 import type { IncRow, IncLine } from "../incoming-list";
@@ -106,6 +107,14 @@ function InboundPanel({ info, poLines }: { info: POInfo; poLines: InboundLine[] 
   const [date, setDate] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; });
   const [qty, setQty] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState("");
+  const [scanMsg, setScanMsg] = useState<string | null>(null);
+  function scanSku(code: string) {
+    const c = code.trim().toLowerCase();
+    const l = poLines.find((x) => x.sku.toLowerCase() === c);
+    if (!l) { setScanMsg(`SKU "${code}" bukan bagian PO ini.`); return; }
+    setQty((p) => ({ ...p, [l.sku]: String((Number(p[l.sku]) || 0) + 1) }));
+    setScanMsg(`\u2713 ${l.sku} +1 diterima`);
+  }
   const total = poLines.reduce((s, l) => s + (Number(qty[l.sku]) || 0), 0);
 
   function submit() {
@@ -128,6 +137,10 @@ function InboundPanel({ info, poLines }: { info: POInfo; poLines: InboundLine[] 
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-semibold outline-none focus:border-primary/40" />
       </div>
       <p className="mb-3 text-sm font-medium text-muted-foreground">Catat qty barang datang per SKU. Good / Repair / Damage diisi tim QC di tahap berikutnya.</p>
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <ScanButton onScan={scanSku} label="Scan barcode / kamera" />
+        {scanMsg && <p className={"text-sm font-semibold " + (scanMsg.startsWith("\u2713") ? "text-emerald-600" : "text-danger")}>{scanMsg}</p>}
+      </div>
       <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full text-sm">
           <thead>
