@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Minus, Trash2, ShoppingCart, CheckCircle2, ImageOff, MapPin, Lock, Unlock, Printer, Mail, X } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, CheckCircle2, ImageOff, MapPin, Lock, Unlock, Printer, Mail, X, ScanLine } from "lucide-react";
 import { formatIDR } from "@/lib/utils";
 import { posCheckout, type PosCheckoutLine } from "./actions";
 
@@ -37,6 +37,7 @@ export function POSView({ locations, items, recap, canEdit }: { locations: PosLo
   const [cust, setCust] = useState({ name: "", phone: "", email: "" });
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [scanMsg, setScanMsg] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [rekapDate, setRekapDate] = useState(todayStr());
 
@@ -84,6 +85,17 @@ export function POSView({ locations, items, recap, canEdit }: { locations: PosLo
     }));
   }
   function removeLine(vid: string) { setCart((p) => p.filter((c) => c.item.variantId !== vid)); }
+  // Scan barcode: scanner USB/Bluetooth mengetik SKU lalu Enter. Cocokkan SKU persis
+  // di lokasi ini; kalau tidak ada, pakai satu-satunya hasil pencarian.
+  function scanAdd(code: string) {
+    const c = code.trim().toLowerCase();
+    if (!c) return;
+    let it = items.find((x) => (x.stock[locId] ?? 0) > 0 && x.sku.toLowerCase() === c);
+    if (!it && list.length === 1) it = list[0];
+    if (!it) { setScanMsg(`"${code}" tidak ditemukan / tidak ada stok di lokasi ini.`); return; }
+    if (inCart(it.variantId) >= stockAt(it)) { setScanMsg(`Stok ${it.sku} sudah habis di keranjang.`); return; }
+    add(it); setQ(""); setScanMsg(`✓ ${it.productName} ${it.size ? "· " + it.size : ""} ditambahkan.`);
+  }
   function changeLoc(id: string) { if (locked) return; setLocId(id); setCart([]); setError(null); setReceipt(null); }
 
   function checkout() {
@@ -150,9 +162,19 @@ export function POSView({ locations, items, recap, canEdit }: { locations: PosLo
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {/* Katalog */}
           <div className="space-y-3 lg:col-span-2">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari produk / SKU…" className="h-11 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm font-medium outline-none focus:border-primary/40" />
+            <div>
+              <div className="relative">
+                <ScanLine className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                <input
+                  value={q}
+                  onChange={(e) => { setQ(e.target.value); setScanMsg(null); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); scanAdd(q); } }}
+                  autoFocus
+                  placeholder="Scan barcode / cari produk / SKU… (Enter untuk tambah)"
+                  className="h-11 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm font-medium outline-none focus:border-primary/40"
+                />
+              </div>
+              {scanMsg && <p className={"mt-1 text-xs font-semibold " + (scanMsg.startsWith("✓") ? "text-emerald-600" : "text-danger")}>{scanMsg}</p>}
             </div>
             {list.length === 0 ? (
               <div className="card p-10 text-center text-sm font-medium text-muted-foreground">Tidak ada stok di lokasi ini. Transfer stok ke lokasi ini dulu (Distribution).</div>
