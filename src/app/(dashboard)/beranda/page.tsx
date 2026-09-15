@@ -1,21 +1,37 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getRole } from "@/lib/roles";
 import { canView, PAGE_KEYS, type PageKey } from "@/lib/permissions";
 import { SECTIONS } from "@/components/shell/nav-config";
 
-// Warna aksen per-area (pastel selaras tema) supaya ikon tidak polos.
-const ACCENTS: Record<string, string> = {
-  dashboard: "bg-indigo-100 text-indigo-700",
-  produksi: "bg-amber-100 text-amber-700",
-  inbound: "bg-emerald-100 text-emerald-700",
-  distribusi: "bg-sky-100 text-sky-700",
-  sales: "bg-rose-100 text-rose-700",
-  finance: "bg-violet-100 text-violet-700",
-  analitik: "bg-cyan-100 text-cyan-700",
-  setting: "bg-honeydew text-eerie",
+// Warna kartu selaras tema Dashboard (eerie / vanila / honeydew / alice),
+// dibagi rata 2 kartu per warna supaya penuh warna tapi tetap seimbang.
+type Style = { card: string; icon: string; sub: string; chip: string; arrow: string };
+const DARK: Style = {
+  card: "bg-eerie text-ghost hover:bg-eerie/90",
+  icon: "bg-white/10 text-ghost",
+  sub: "text-ghost/60",
+  chip: "bg-white/10 text-ghost/80",
+  arrow: "bg-vanila text-eerie",
+};
+const light = (bg: string): Style => ({
+  card: `${bg} text-eerie hover:brightness-[0.97]`,
+  icon: "bg-eerie/10 text-eerie",
+  sub: "text-eerie/55",
+  chip: "bg-eerie/[0.07] text-eerie/70",
+  arrow: "bg-eerie text-ghost",
+});
+const STYLES: Record<string, Style> = {
+  dashboard: DARK,
+  produksi: light("bg-vanila"),
+  inbound: light("bg-honeydew"),
+  distribusi: light("bg-alice"),
+  sales: light("bg-vanila"),
+  finance: light("bg-honeydew"),
+  analitik: light("bg-alice"),
+  setting: DARK,
 };
 
 export default async function BerandaPage() {
@@ -33,31 +49,40 @@ export default async function BerandaPage() {
   })).filter((s) => s.vitems.length > 0);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="flex h-full flex-col gap-4">
       <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Beranda</p>
-        <h1 className="text-2xl font-extrabold">Pilih Area Kerja 👋</h1>
-        <p className="mt-1 text-sm font-medium text-muted-foreground">
-          Klik area untuk membukanya — menu di samping akan menyesuaikan section yang kamu pilih, jadi tidak terlalu penuh.
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Beranda</p>
+        <h1 className="text-xl font-extrabold leading-tight">Pilih Area Kerja 👋</h1>
+        <p className="text-xs font-medium text-muted-foreground">
+          Klik area untuk membukanya — menu di samping menyesuaikan section yang kamu pilih.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid flex-1 grid-cols-2 gap-3 lg:grid-cols-4 lg:grid-rows-2">
         {sections.map((s) => {
           const Icon = s.icon;
+          const st = STYLES[s.key] ?? light("bg-ghost");
           const first = s.vitems[0].dest!.href;
           return (
-            <Link key={s.key} href={first} className="card group flex flex-col p-5 transition hover:border-primary/40 hover:shadow-card">
-              <div className={"mb-3 flex h-11 w-11 items-center justify-center rounded-2xl " + (ACCENTS[s.key] ?? "bg-primary/10 text-primary")}><Icon className="h-5 w-5" /></div>
-              <h2 className="text-base font-extrabold">{s.label}</h2>
-              <p className="mt-0.5 text-xs font-medium text-muted-foreground">{s.desc}</p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
+            <Link
+              key={s.key}
+              href={first}
+              className={"group relative flex flex-col rounded-2xl p-4 shadow-card transition " + st.card}
+            >
+              <div className="flex items-start justify-between">
+                <div className={"flex h-9 w-9 items-center justify-center rounded-xl " + st.icon}>
+                  <Icon className="h-[18px] w-[18px]" />
+                </div>
+                <span className={"flex h-7 w-7 items-center justify-center rounded-full opacity-0 transition group-hover:opacity-100 " + st.arrow}>
+                  <ArrowUpRight className="h-4 w-4" />
+                </span>
+              </div>
+              <h2 className="mt-2.5 text-sm font-extrabold leading-tight">{s.label}</h2>
+              <p className={"mt-0.5 text-[11px] font-medium leading-snug " + st.sub}>{s.desc}</p>
+              <div className="mt-auto flex flex-wrap gap-1 pt-3">
                 {s.vitems.map((it) => (
-                  <span key={it.label} className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">{it.label}</span>
+                  <span key={it.label} className={"rounded-full px-2 py-0.5 text-[10px] font-semibold " + st.chip}>{it.label}</span>
                 ))}
               </div>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-primary">
-                Buka <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-              </span>
             </Link>
           );
         })}
