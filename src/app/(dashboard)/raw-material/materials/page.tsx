@@ -14,7 +14,7 @@ async function getData(): Promise<{ materials: MaterialData[]; categories: Mater
   const [matRes, catRes, brandRes] = await Promise.all([
     supabase.from("materials").select("id,code,name,brand_id,category_id,unit,is_active").is("deleted_at", null).order("name"),
     supabase.from("material_categories").select("id,name,code").is("deleted_at", null).order("name"),
-    supabase.from("brands").select("id,name").order("name"),
+    supabase.from("brands").select("id,name").is("deleted_at", null).order("name"),
   ]);
   return {
     materials: (matRes.data ?? []) as MaterialData[],
