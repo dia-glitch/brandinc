@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Wallet } from "lucide-react";
 import { formatIDR } from "@/lib/utils";
-import { processPaymentToday, type PayLine } from "./actions";
+import { processPaymentToday, type PayLine } from "../desk/actions";
 import type { DeskItem } from "@/lib/finance-desk";
 
 export type PTAccount = { id: string; name: string; kind: string; balance: number };
