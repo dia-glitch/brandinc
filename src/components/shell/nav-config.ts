@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Boxes, Warehouse, PackageOpen, Factory, Store, Truck, CalendarClock,
   Images, CreditCard, Wallet, BookText, BarChart3, Settings, HelpCircle, Receipt, ShoppingCart,
-  Users, ShieldCheck, Database, type LucideIcon,
+  Users, ShieldCheck, Database, FileBarChart, type LucideIcon,
 } from "lucide-react";
 import type { PageKey } from "@/lib/permissions";
 
@@ -45,6 +45,7 @@ const Finance: NavItem = { label: "Finance", icon: Wallet, pages: [
 ] };
 const Accounting: NavItem = { label: "Accounting", icon: BookText, pages: [{ key: "accounting", href: "/accounting" }] };
 const BusinessIntelligence: NavItem = { label: "Business Intelligence", icon: BarChart3, pages: [{ key: "dashboard", href: "/bi" }] };
+const Laporan: NavItem = { label: "Laporan", icon: FileBarChart, pages: [{ key: "dashboard", href: "/laporan" }] };
 const MasterData: NavItem = { label: "Master Data", icon: Boxes, pages: [{ key: "master_data", href: "/master-data/brands" }] };
 const MasterProduksi: NavItem = { label: "Master Produksi", icon: Boxes, pages: [{ key: "prod_master", href: "/master-data/categories" }] };
 const PenggunaRole: NavItem = { label: "Pengguna & Role", icon: Users, pages: [{ key: "settings", href: "/settings/users" }] };
@@ -63,7 +64,7 @@ export const SECTIONS: NavSection[] = [
   { key: "distribusi", label: "Distribution", desc: "Distribusi, ledger stok & channel", icon: Truck, items: [Distribution, InventoryLedger] },
   { key: "sales", label: "Sales", desc: "Penjualan, POS, katalog & lifecycle", icon: CreditCard, items: [Sales, POS, Katalog, Lifecycle] },
   { key: "finance", label: "Finance & Accounting", desc: "Keuangan & akuntansi", icon: Wallet, items: [Finance, Accounting] },
-  { key: "analitik", label: "Analitik & Laporan", desc: "Business Intelligence & laporan", icon: BarChart3, items: [BusinessIntelligence] },
+  { key: "analitik", label: "Analitik & Laporan", desc: "Business Intelligence & laporan", icon: BarChart3, items: [BusinessIntelligence, Laporan] },
   { key: "setting", label: "Setting", desc: "Master data & pengaturan", icon: Settings, items: [MasterData, PenggunaRole, AksesHalaman, DataManagement] },
 ];
 
