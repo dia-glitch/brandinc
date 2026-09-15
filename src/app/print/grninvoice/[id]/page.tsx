@@ -145,17 +145,6 @@ export default async function GrnInvoicePrintPage({ params }: { params: { id: st
         )}
       </div>
 
-      <div className="mt-10 grid grid-cols-2 gap-8 text-sm">
-        <div>
-          <p className="mb-12 text-muted-foreground">Diterima & diverifikasi (Finance),</p>
-          <p className="border-t border-border pt-1 font-semibold">{company}</p>
-        </div>
-        <div>
-          <p className="mb-12 text-muted-foreground">Hormat kami (Vendor),</p>
-          <p className="border-t border-border pt-1 font-semibold">{sup?.name ?? "—"}</p>
-        </div>
-      </div>
-
       {docs.length > 0 && (
         <div className="mt-6">
           <p className="mb-1 text-xs font-black uppercase tracking-wide text-muted-foreground">Lampiran ({docs.length})</p>

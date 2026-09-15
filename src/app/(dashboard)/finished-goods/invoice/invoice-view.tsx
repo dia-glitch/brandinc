@@ -145,7 +145,7 @@ export function InvoiceView({ rows, canInvoice }: { rows: InvRow[]; canInvoice: 
                     <td className="px-4 py-3">{r.docs.length > 0 ? <span className="inline-flex items-center gap-1 text-xs font-bold text-muted-foreground"><Paperclip className="h-3.5 w-3.5" /> {r.docs.length}</span> : <span className="text-muted-foreground">—</span>}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {canInvoice && <button onClick={() => setForm(r)} className="text-xs font-bold text-muted-foreground hover:text-foreground">Edit</button>}
+                        {canInvoice && <button onClick={() => setForm(r)} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-muted"><Upload className="h-3.5 w-3.5" /> {r.supplierInvoiceNo || r.docs.length ? "Edit" : "Lengkapi"}</button>}
                         <a href={`/print/grninvoice/${r.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-muted"><FileText className="h-4 w-4" /> Lihat</a>
                       </div>
                     </td>
