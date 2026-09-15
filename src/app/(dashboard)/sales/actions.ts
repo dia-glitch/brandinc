@@ -39,7 +39,7 @@ async function moveStock(supabase: ReturnType<typeof createClient>, variantId: s
 export type SaleLineInput = { variantId: string; warehouseId: string; sku: string; size: string; productName: string; qty: number; retail: number; price: number; cogm: number; extOrderId?: string };
 export type SaleInput = {
   brandId: string; channelId: string | null; settlement: string; orderDate: string; extOrderId?: string;
-  commission?: number; ppn: number; notes: string; lines: SaleLineInput[];
+  commission?: number; ppn: number; notes: string; customer?: string; lines: SaleLineInput[];
 };
 
 export async function createSale(input: SaleInput): Promise<CreateResult> {
@@ -61,7 +61,7 @@ export async function createSale(input: SaleInput): Promise<CreateResult> {
   const code = await nextCode(supabase);
   const { data: order, error: oErr } = await supabase.from("sales_orders").insert({
     company_id: DEMO_COMPANY_ID, brand_id: input.brandId, code, channel_id: input.channelId, settlement: input.settlement || "ar",
-    ext_order_id: input.extOrderId?.trim() || null, customer: null, order_date: input.orderDate || null, discount, commission: input.commission || 0, ppn: input.ppn || 0,
+    ext_order_id: input.extOrderId?.trim() || null, customer: input.customer?.trim() || null, order_date: input.orderDate || null, discount, commission: input.commission || 0, ppn: input.ppn || 0,
     notes: input.notes.trim() || null, is_demo: false,
   }).select("id").single();
   if (oErr || !order) return { ok: false, error: oErr?.message ?? "Gagal simpan." };
