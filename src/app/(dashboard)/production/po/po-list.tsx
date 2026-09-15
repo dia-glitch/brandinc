@@ -28,6 +28,7 @@ export type ProdPORow = {
   brand_name: string;
   supplier_name: string;
   status: string;
+  closed: boolean;
   notes: string | null;
   ppn_percent: number;
   ppn_amount: number;
@@ -97,7 +98,7 @@ function ProdPORowItem({ row, canEdit = true }: { row: ProdPORow; canEdit?: bool
         <td className="hidden py-2.5 pr-3 sm:table-cell font-medium text-muted-foreground">{row.due_delivery ?? "—"}</td>
         <td className="py-2.5 pr-3 text-right tabular-nums">{formatIDR(total)}</td>
         <td className="py-2.5 pr-3">
-          {cancelled ? <Badge tone="danger">Batal</Badge> : <Badge tone="neutral">Open</Badge>}
+          {cancelled ? <Badge tone="danger">Batal</Badge> : row.closed ? <Badge tone="success">Selesai</Badge> : <Badge tone="neutral">Open</Badge>}
         </td>
         <td className="py-2.5 pr-4 text-right">
           <div className="flex items-center justify-end gap-1">

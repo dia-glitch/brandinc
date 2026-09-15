@@ -9,7 +9,7 @@ async function getData() {
   if (!isSupabaseConfigured()) return { rows: [] as ProdPORow[], spks: [] as SpkOpt[], suppliers: [] as SupplierOpt[] };
   const supabase = createClient();
   const [poRes, poLineRes, spkRes, spkLineRes, brandRes, supRes] = await Promise.all([
-    supabase.from("production_pos").select("id,code,spk_id,po_date,due_delivery,brand_id,supplier_id,status,notes,ppn_percent,ppn_amount,invoice_no").is("deleted_at", null).order("code", { ascending: false }),
+    supabase.from("production_pos").select("id,code,spk_id,po_date,due_delivery,brand_id,supplier_id,status,notes,ppn_percent,ppn_amount,invoice_no,delivered_at").is("deleted_at", null).order("code", { ascending: false }),
     supabase.from("production_po_lines").select("id,po_id,sku,size,product_name,qty_spk,qty,unit_cost,received_qty").is("deleted_at", null),
     supabase.from("work_orders").select("id,code,brand_id,supplier_id,due_delivery,status").is("deleted_at", null).order("code", { ascending: false }),
     supabase.from("work_order_lines").select("id,spk_id,sku,size,product_name,qty").is("deleted_at", null),
@@ -55,6 +55,7 @@ async function getData() {
     brand_name: brandName((p.brand_id as string | null) ?? null),
     supplier_name: supplierName((p.supplier_id as string | null) ?? null),
     status: (p.status as string) ?? "open",
+    closed: Boolean(p.delivered_at),
     notes: (p.notes as string | null) ?? null,
     ppn_percent: Number(p.ppn_percent) || 0,
     ppn_amount: Number(p.ppn_amount) || 0,
