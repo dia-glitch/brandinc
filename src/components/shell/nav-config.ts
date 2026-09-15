@@ -33,6 +33,9 @@ const Inventory: NavItem = { label: "Inventory", icon: Warehouse, pages: [{ key:
 const Distribution: NavItem = { label: "Distribution", icon: Truck, pages: [
   { key: "dist_submit", href: "/distribution" }, { key: "dist_process", href: "/distribution" },
 ] };
+const InventoryLedger: NavItem = { label: "Inventory Ledger", icon: Warehouse, pages: [
+  { key: "dist_submit", href: "/distribution/ledger" }, { key: "dist_process", href: "/distribution/ledger" },
+] };
 const Sales: NavItem = { label: "Sales", icon: CreditCard, pages: [{ key: "sales_penjualan", href: "/sales" }] };
 const Katalog: NavItem = { label: "Katalog", icon: Images, pages: [{ key: "catalog", href: "/katalog" }] };
 const Lifecycle: NavItem = { label: "Lifecycle Produk", icon: CalendarClock, pages: [{ key: "product_lifecycle", href: "/lifecycle" }] };
@@ -55,7 +58,7 @@ export const SECTIONS: NavSection[] = [
   { key: "dashboard", label: "Dashboard", desc: "Ringkasan bisnis", icon: LayoutDashboard, items: [Dashboard] },
   { key: "produksi", label: "Production & Purchasing", desc: "Bahan baku & produksi", icon: Factory, items: [RawMaterial, Production] },
   { key: "inbound", label: "Inbound / Receiving", desc: "Penerimaan, stok & invoice", icon: PackageOpen, items: [FinishedGoods, Invoice, Inventory] },
-  { key: "distribusi", label: "Distribution", desc: "Distribusi antar lokasi & channel", icon: Truck, items: [Distribution] },
+  { key: "distribusi", label: "Distribution", desc: "Distribusi, ledger stok & channel", icon: Truck, items: [Distribution, InventoryLedger] },
   { key: "sales", label: "Sales", desc: "Penjualan, katalog & lifecycle", icon: CreditCard, items: [Sales, Katalog, Lifecycle] },
   { key: "finance", label: "Finance & Accounting", desc: "Keuangan & akuntansi", icon: Wallet, items: [Finance, Accounting] },
   { key: "analitik", label: "Analitik & Laporan", desc: "Business Intelligence & laporan", icon: BarChart3, items: [BusinessIntelligence] },
