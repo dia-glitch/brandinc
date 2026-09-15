@@ -56,25 +56,25 @@ export default async function MaterialsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
-                <th className="px-5 py-3">Kode</th>
-                <th className="px-5 py-3">Nama</th>
-                <th className="px-5 py-3">Brand</th>
-                <th className="px-5 py-3">Kategori</th>
-                <th className="px-5 py-3">Satuan</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Aksi</th>
+                <th className="px-5 py-2">Kode</th>
+                <th className="px-5 py-2">Nama</th>
+                <th className="px-5 py-2">Brand</th>
+                <th className="px-5 py-2">Kategori</th>
+                <th className="px-5 py-2">Satuan</th>
+                <th className="px-5 py-2">Status</th>
+                <th className="px-5 py-2 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {materials.map((m) => (
                 <tr key={m.id} className="border-t border-border font-semibold hover:bg-muted/50">
-                  <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{m.code}</td>
-                  <td className="px-5 py-3">{m.name}</td>
-                  <td className="px-5 py-3 font-medium text-muted-foreground">{brandName(m.brand_id)}</td>
-                  <td className="px-5 py-3 font-medium text-muted-foreground">{catName(m.category_id)}</td>
-                  <td className="px-5 py-3 font-medium text-muted-foreground">{m.unit ?? "—"}</td>
-                  <td className="px-5 py-3">{m.is_active ? <Badge tone="success">Aktif</Badge> : <Badge tone="neutral">Nonaktif</Badge>}</td>
-                  <td className="px-5 py-3 text-right"><MaterialDialog material={m} categories={categories} brands={brands} canEdit={canEdit} /></td>
+                  <td className="px-5 py-2 font-mono text-xs text-muted-foreground">{m.code}</td>
+                  <td className="px-5 py-2">{m.name}</td>
+                  <td className="px-5 py-2 font-medium text-muted-foreground">{brandName(m.brand_id)}</td>
+                  <td className="px-5 py-2 font-medium text-muted-foreground">{catName(m.category_id)}</td>
+                  <td className="px-5 py-2 font-medium text-muted-foreground">{m.unit ?? "—"}</td>
+                  <td className="px-5 py-2">{m.is_active ? <Badge tone="success">Aktif</Badge> : <Badge tone="neutral">Nonaktif</Badge>}</td>
+                  <td className="px-5 py-2 text-right"><MaterialDialog material={m} categories={categories} brands={brands} canEdit={canEdit} /></td>
                 </tr>
               ))}
             </tbody>
