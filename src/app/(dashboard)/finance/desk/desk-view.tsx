@@ -26,6 +26,7 @@ export function FinanceDeskView({ items, canEdit }: { items: DeskItem[]; canEdit
   const [src, setSrc] = useState("");
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
   const totals = useMemo(() => {
     const all = items.reduce((s, i) => s + i.remaining, 0);
@@ -49,8 +50,10 @@ export function FinanceDeskView({ items, canEdit }: { items: DeskItem[]; canEdit
   function toggle(i: DeskItem) {
     if (!canEdit) return;
     setBusy(i.qid);
+    setErr(null);
     start(async () => {
-      await togglePaymentToday({ source: i.source, refKey: i.refKey, refType: i.refType, on: !i.marked });
+      const res = await togglePaymentToday({ source: i.source, refKey: i.refKey, refType: i.refType, on: !i.marked });
+      if (!res.ok) setErr(res.error);
       router.refresh();
       setBusy(null);
     });
@@ -66,6 +69,12 @@ export function FinanceDeskView({ items, canEdit }: { items: DeskItem[]; canEdit
           Tandai <b>Payment Today</b> untuk memasukkannya ke antrian pembayaran hari ini.
         </p>
       </div>
+
+      {err && (
+        <div className="rounded-xl border border-danger/40 bg-danger/5 px-4 py-3 text-sm font-semibold text-danger">
+          Gagal menandai: {err} — pastikan tabel <b>payment_queue</b> sudah dibuat (jalankan supabase/sql/payment_queue.sql).
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Total siap dibayar" value={compactIDR(totals.all)} sub={`${totals.count} item`} />
