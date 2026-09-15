@@ -24,7 +24,7 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-      router.push("/");
+      router.push("/beranda");
       router.refresh();
     } catch {
       setError("Konfigurasi Supabase belum siap. Cek file .env lalu restart server.");
