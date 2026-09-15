@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, ArrowDownRight, TrendingUp } from "lucide-react";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import { DashboardBrandFilter } from "@/components/dashboard/brand-filter";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getDashboardData, type DashData, type Period } from "@/lib/dashboard";
@@ -14,9 +15,9 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: "year", label: "Tahun Ini" },
 ];
 
-async function getData(period: Period): Promise<DashData | null> {
+async function getData(period: Period, brandId: string): Promise<DashData | null> {
   if (!isSupabaseConfigured()) return null;
-  return getDashboardData(createClient(), period);
+  return getDashboardData(createClient(), period, brandId);
 }
 
 const compact = (n: number) => {
@@ -28,10 +29,12 @@ const compact = (n: number) => {
   return formatIDR(n);
 };
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ period?: string; brand?: string }> }) {
   const sp = await searchParams;
   const period: Period = (["today", "week", "month", "year"].includes(sp.period ?? "") ? sp.period : "month") as Period;
-  const d = await getData(period);
+  const brandId = sp.brand ?? "";
+  const d = await getData(period, brandId);
+  const brandSuffix = brandId ? `&brand=${brandId}` : "";
   const delta = d ? d.netSales - d.netSalesPrev : 0;
   const deltaPct = d && d.netSalesPrev > 0 ? (delta / d.netSalesPrev) * 100 : null;
   const itemsPerOrder = d && d.orders > 0 ? d.qty / d.orders : 0;
@@ -43,11 +46,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold">Ringkasan Bisnis 👋</h1>
-          <p className="text-sm font-medium text-muted-foreground">Penjualan, laba &amp; stok — {d ? d.periodLabel : "—"}</p>
+          <p className="text-sm font-medium text-muted-foreground">Penjualan, laba &amp; stok — {d ? d.periodLabel : "—"}{d && brandId ? ` · ${d.allBrands.find((b) => b.id === brandId)?.name ?? "Brand"}` : " · Semua Brand"}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {d && <DashboardBrandFilter period={period} brandId={brandId} brands={d.allBrands} />}
           {PERIODS.map((p) => (
-            <Link key={p.key} href={p.key === "month" ? "/" : `/?period=${p.key}`} data-active={period === p.key} className="pill">{p.label}</Link>
+            <Link key={p.key} href={p.key === "month" ? (brandId ? `/?brand=${brandId}` : "/") : `/?period=${p.key}${brandSuffix}`} data-active={period === p.key} className="pill">{p.label}</Link>
           ))}
         </div>
       </div>

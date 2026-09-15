@@ -12,6 +12,8 @@ export type ProductStat = { sku: string; name: string; qty: number; revenue: num
 export type DashData = {
   period: Period;
   periodLabel: string;
+  brandId: string;
+  allBrands: { id: string; name: string }[];
   netSales: number; netSalesPrev: number;
   orders: number; qty: number;
   cogs: number; grossProfit: number; grossMargin: number;
@@ -61,20 +63,21 @@ function ranges(period: Period) {
   return { startS: ymd(start), endS: ymd(end), prevStartS: ymd(prevStart), prevEndS: ymd(prevEnd), label };
 }
 
-export async function getDashboardData(supabase: SB, period: Period = "month"): Promise<DashData> {
+export async function getDashboardData(supabase: SB, period: Period = "month", brandId = ""): Promise<DashData> {
   const { startS, endS, prevStartS, prevEndS, label } = ranges(period);
   const inCur = (d: string) => d >= startS && d < endS;
   const inPrev = (d: string) => d >= prevStartS && d < prevEndS;
 
-  const [soRes, soLineRes, srRes, srLineRes, fgBalRes, varRes, matBalRes, brandRes, chanRes, skuCost] = await Promise.all([
+  const [soRes, soLineRes, srRes, srLineRes, fgBalRes, varRes, matBalRes, brandRes, prodRes, chanRes, skuCost] = await Promise.all([
     supabase.from("sales_orders").select("id,order_date,brand_id,channel_id").is("deleted_at", null),
     supabase.from("sales_order_lines").select("order_id,sku,product_name,qty,price,cogm").is("deleted_at", null),
     supabase.from("sales_returns").select("id,return_date,brand_id,channel_id").is("deleted_at", null),
     supabase.from("sales_return_lines").select("return_id,sku,product_name,qty,price,cogm").is("deleted_at", null),
     supabase.from("stock_balances").select("variant_id,qty_on_hand,moving_avg_cost,stock_status").eq("stock_status", "available").is("deleted_at", null),
-    supabase.from("product_variants").select("id,sku").is("deleted_at", null),
+    supabase.from("product_variants").select("id,sku,product_id").is("deleted_at", null),
     supabase.from("material_stock_balances").select("qty_on_hand,moving_avg_cost").is("deleted_at", null),
     supabase.from("brands").select("id,name").is("deleted_at", null),
+    supabase.from("products").select("id,brand_id").is("deleted_at", null),
     supabase.from("sales_channels").select("id,name,grup").is("deleted_at", null),
     getSkuCosting(supabase),
   ]);
@@ -99,6 +102,7 @@ export async function getDashboardData(supabase: SB, period: Period = "month"): 
   for (const l of soLineRes.data ?? []) {
     const info = orderInfo.get(l.order_id as string);
     if (!info || !info.date) continue;
+    if (brandId && info.brand !== brandId) continue;
     const q = Number(l.qty) || 0;
     const amt = q * (Number(l.price) || 0);
     const cost = q * (Number(l.cogm) || 0);
@@ -134,6 +138,7 @@ export async function getDashboardData(supabase: SB, period: Period = "month"): 
   for (const l of srLineRes.data ?? []) {
     const info = retInfo.get(l.return_id as string);
     if (!info || !info.date) continue;
+    if (brandId && info.brand !== brandId) continue;
     const q = Number(l.qty) || 0;
     const amt = q * (Number(l.price) || 0);
     if (!inCur(info.date)) continue;
@@ -163,21 +168,27 @@ export async function getDashboardData(supabase: SB, period: Period = "month"): 
     .sort((a, b) => b.qty - a.qty || b.revenue - a.revenue)
     .slice(0, 8);
 
-  // Nilai persediaan (operasional)
+  // Nilai persediaan (operasional). Filter brand → hanya finished goods brand itu.
   const skuOf = new Map((varRes.data ?? []).map((v) => [v.id as string, (v.sku as string) ?? ""]));
+  const prodBrand = new Map((prodRes.data ?? []).map((pr) => [pr.id as string, (pr.brand_id as string | null) ?? ""]));
+  const varBrand = new Map((varRes.data ?? []).map((v) => [v.id as string, prodBrand.get((v.product_id as string) ?? "") ?? ""]));
   const fgValue = (fgBalRes.data ?? []).reduce((s, b) => {
+    if (brandId && varBrand.get(b.variant_id as string) !== brandId) return s;
     const q = Number(b.qty_on_hand) || 0;
     const cogm = skuCost.get(skuOf.get(b.variant_id as string) ?? "")?.cogm ?? (Number(b.moving_avg_cost) || 0);
     return s + q * cogm;
   }, 0);
-  const rawValue = (matBalRes.data ?? []).reduce((s, b) => s + (Number(b.qty_on_hand) || 0) * (Number(b.moving_avg_cost) || 0), 0);
+  // Bahan baku tidak terikat brand → hanya dihitung saat "Semua Brand".
+  const rawValue = brandId ? 0 : (matBalRes.data ?? []).reduce((s, b) => s + (Number(b.qty_on_hand) || 0) * (Number(b.moving_avg_cost) || 0), 0);
 
   // Tren 8 bulan (revenue neto & jumlah order) — konteks jangka panjang.
   const allMonths = Array.from(new Set([...netByMonth.keys(), ...ordersByMonth.keys()])).filter(Boolean).sort();
   const chart = allMonths.slice(-8).map((m) => ({ m: ID_MONTHS[Number(m.slice(5, 7)) - 1] ?? m, revenue: Math.round(netByMonth.get(m) ?? 0), orders: ordersByMonth.get(m)?.size ?? 0 }));
 
+  const allBrands = (brandRes.data ?? []).map((b) => ({ id: b.id as string, name: (b.name as string) ?? "—" })).sort((a, b) => a.name.localeCompare(b.name));
+
   return {
-    period, periodLabel: label,
+    period, periodLabel: label, brandId, allBrands,
     netSales, netSalesPrev, orders: orderSet.size, qty,
     cogs, grossProfit, grossMargin,
     returnValue, returnQty,
