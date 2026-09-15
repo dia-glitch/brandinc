@@ -17,6 +17,8 @@ async function assertFunds(supabase: ReturnType<typeof createClient>, accountId:
 }
 function rv() {
   revalidatePath("/finance");
+  revalidatePath("/finance/desk");
+  revalidatePath("/finance/payment-today");
   revalidatePath("/finance/expenses");
   revalidatePath("/finance/cash");
   revalidatePath("/finance/mutasi");
@@ -113,6 +115,29 @@ export async function transferBook(input: { fromId: string; toId: string; amount
   if (e1) return { ok: false, error: e1.message };
   const { error: e2 } = await supabase.from("payments").insert({ ...base, account_id: input.toId, direction: "in", ref_type: "transfer_in", notes: note });
   if (e2) return { ok: false, error: e2.message };
+  rv(); return { ok: true };
+}
+
+/* ---------------- Verifikasi Finance (AP) ---------------- */
+/** Tandai invoice AP sudah diverifikasi finance → boleh masuk Finance Desk. */
+export async function verifyPayable(invoiceNo: string): Promise<Result> {
+  const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  if (!invoiceNo) return { ok: false, error: "Invoice tidak valid." };
+  const by = await getUserName(supabase);
+  const { error } = await supabase.from("ap_verifications").upsert(
+    { invoice_no: invoiceNo, verified_at: new Date().toISOString(), verified_by: by || null },
+    { onConflict: "invoice_no" }
+  );
+  if (error) return { ok: false, error: error.message };
+  rv(); return { ok: true };
+}
+/** Batalkan verifikasi (kembali ke Belum Verifikasi). */
+export async function unverifyPayable(invoiceNo: string): Promise<Result> {
+  const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fin_other")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  const { error } = await supabase.from("ap_verifications").delete().eq("invoice_no", invoiceNo);
+  if (error) return { ok: false, error: error.message };
   rv(); return { ok: true };
 }
 

@@ -56,6 +56,7 @@ export async function getFinanceDesk(supabase: SB): Promise<{ items: DeskItem[];
   for (const p of payables) {
     const remaining = p.total - p.paid;
     if (remaining <= 0.0001) continue;
+    if (!p.verified) continue; // hanya AP yang sudah diverifikasi finance yang masuk antrian
     const bank = supByName.get(p.party);
     const qid = `ap:${p.key}`;
     items.push({

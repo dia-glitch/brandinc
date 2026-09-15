@@ -34,6 +34,7 @@ export type Payable = {
   total: number;
   paid: number;
   status: "unpaid" | "partial" | "paid";
+  verified: boolean;
   // Sumber dokumen untuk lampiran verifikasi.
   poId: string | null;       // material: PO id ; production: null
   prodPoId: string | null;   // production: PO Produksi id
@@ -42,7 +43,7 @@ export type Payable = {
 
 /** Semua hutang dari invoice yang sudah dibuat: bahan (PO) + jasa produksi (GRN). */
 export async function getPayables(supabase: SB): Promise<Payable[]> {
-  const [poRes, poLineRes, rcptRes, rLineRes, brandRes, supRes, payRes] = await Promise.all([
+  const [poRes, poLineRes, rcptRes, rLineRes, brandRes, supRes, payRes, verRes] = await Promise.all([
     supabase.from("purchase_orders").select("id,brand_id,supplier_id,invoice_no,invoice_date,ppn_amount").not("invoice_no", "is", null).is("deleted_at", null),
     supabase.from("purchase_order_lines").select("po_id,qty,unit_price").is("deleted_at", null),
     supabase.from("fg_receipts").select("id,po_id,brand_id,supplier_id,invoice_no,invoice_date").not("invoice_no", "is", null).is("deleted_at", null),
@@ -50,12 +51,14 @@ export async function getPayables(supabase: SB): Promise<Payable[]> {
     supabase.from("brands").select("id,name").is("deleted_at", null),
     supabase.from("suppliers").select("id,name").is("deleted_at", null),
     supabase.from("payments").select("ref_key,direction,amount").eq("direction", "out").is("deleted_at", null),
+    supabase.from("ap_verifications").select("invoice_no"),
   ]);
 
   const brandName = (id: string | null) => (brandRes.data ?? []).find((b) => b.id === id)?.name ?? "—";
   const supName = (id: string | null) => (supRes.data ?? []).find((s) => s.id === id)?.name ?? "—";
   const paidByKey = new Map<string, number>();
   (payRes.data ?? []).forEach((p) => { const k = (p.ref_key as string) ?? ""; if (k) paidByKey.set(k, (paidByKey.get(k) ?? 0) + (Number(p.amount) || 0)); });
+  const verifiedSet = new Set<string>((verRes.data ?? []).map((v) => v.invoice_no as string));
 
   // PPN produksi dihitung dari % PO.
   const poPpnPct = new Map<string, number>();
@@ -74,7 +77,7 @@ export async function getPayables(supabase: SB): Promise<Payable[]> {
     out.push({
       key: inv, refType: "material_invoice", invoiceNo: inv, invoiceDate: (po.invoice_date as string | null) ?? null,
       party: supName((po.supplier_id as string | null) ?? null), brand: brandName((po.brand_id as string | null) ?? null),
-      subtotal, ppn, total, paid, status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
+      subtotal, ppn, total, paid, status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial", verified: verifiedSet.has(inv),
       poId: po.id as string, prodPoId: null, receiptId: null,
     });
   }
@@ -89,7 +92,7 @@ export async function getPayables(supabase: SB): Promise<Payable[]> {
     out.push({
       key: inv, refType: "production_invoice", invoiceNo: inv, invoiceDate: (r.invoice_date as string | null) ?? null,
       party: supName((r.supplier_id as string | null) ?? null), brand: brandName((r.brand_id as string | null) ?? null),
-      subtotal, ppn, total, paid, status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
+      subtotal, ppn, total, paid, status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial", verified: verifiedSet.has(inv),
       poId: null, prodPoId: (r.po_id as string | null) ?? null, receiptId: r.id as string,
     });
   }
