@@ -15,35 +15,45 @@ export type IncRow = {
   id: string; code: string; po_id: string; po_code: string; brand_id: string | null; brand_name: string; supplier_name: string;
   product_name: string; receipt_date: string | null; incoming_no: number; status: string; invoice_no: string | null; po_closed: boolean; lines: IncLine[];
 };
+// Setiap PO Produksi yang sudah dibuat otomatis muncul (walau belum ada penerimaan).
+export type POStub = { poId: string; poCode: string; brand: string; brandId: string | null; supplier: string; product: string; closed: boolean };
 
 const num = (v: string | number) => Number(v) || 0;
 const sumLines = (r: IncRow, f: (l: IncLine) => number) => r.lines.reduce((a, l) => a + f(l), 0);
 
-type Group = { poId: string; poCode: string; brand: string; supplier: string; product: string; batches: IncRow[] };
+type Group = { poId: string; poCode: string; brand: string; brandId: string | null; supplier: string; product: string; closed: boolean; batches: IncRow[] };
 
-export function IncomingList({ rows, canEdit = true }: { rows: IncRow[]; warehouses?: WarehouseOpt[]; canEdit?: boolean }) {
+export function IncomingList({ rows, pos = [], canEdit = true }: { rows: IncRow[]; pos?: POStub[]; warehouses?: WarehouseOpt[]; canEdit?: boolean }) {
   const [brandFilter, setBrandFilter] = useState("");
   const [q, setQ] = useState("");
   void canEdit;
 
+  const groups = useMemo(() => {
+    const m = new Map<string, Group>();
+    // 1) Semua PO dulu (biar yang belum diterima pun tampil).
+    for (const p of pos) m.set(p.poId, { poId: p.poId, poCode: p.poCode, brand: p.brand, brandId: p.brandId, supplier: p.supplier, product: p.product, closed: p.closed, batches: [] });
+    // 2) Tempelkan batch penerimaan ke PO-nya.
+    for (const r of rows) {
+      let g = m.get(r.po_id);
+      if (!g) { g = { poId: r.po_id, poCode: r.po_code, brand: r.brand_name, brandId: r.brand_id, supplier: r.supplier_name, product: r.product_name, closed: r.po_closed, batches: [] }; m.set(r.po_id, g); }
+      g.batches.push(r);
+      if (!g.product && r.product_name) g.product = r.product_name;
+    }
+    return Array.from(m.values()).map((g) => ({ ...g, batches: g.batches.sort((a, b) => a.incoming_no - b.incoming_no) }));
+  }, [rows, pos]);
+
   const brandOpts = useMemo(() => {
     const m = new Map<string, string>();
-    for (const r of rows) if (r.brand_id) m.set(r.brand_id, r.brand_name);
+    for (const g of groups) if (g.brandId) m.set(g.brandId, g.brand);
     return Array.from(m.entries()).map(([id, name]) => ({ id, name }));
-  }, [rows]);
+  }, [groups]);
 
-  const groups = new Map<string, Group & { brandId: string | null }>();
-  for (const r of rows) {
-    const g = groups.get(r.po_id) ?? { poId: r.po_id, poCode: r.po_code, brand: r.brand_name, brandId: r.brand_id, supplier: r.supplier_name, product: r.product_name, batches: [] };
-    g.batches.push(r);
-    if (!g.product && r.product_name) g.product = r.product_name;
-    groups.set(r.po_id, g);
-  }
   const query = q.trim().toLowerCase();
-  const list = Array.from(groups.values())
+  const list = groups
     .filter((g) => (!brandFilter || g.brandId === brandFilter))
-    .filter((g) => !query || g.poCode.toLowerCase().includes(query) || (g.product ?? "").toLowerCase().includes(query))
-    .map((g) => ({ ...g, batches: g.batches.sort((a, b) => a.incoming_no - b.incoming_no) }));
+    .filter((g) => !query || g.poCode.toLowerCase().includes(query) || (g.product ?? "").toLowerCase().includes(query));
+
+  const belumDiterima = groups.filter((g) => g.batches.length === 0).length;
 
   return (
     <div className="space-y-3">
@@ -61,6 +71,7 @@ export function IncomingList({ rows, canEdit = true }: { rows: IncRow[]; warehou
         {(brandFilter || q) && (
           <button onClick={() => { setBrandFilter(""); setQ(""); }} className="h-11 rounded-xl border border-border px-4 text-sm font-bold hover:bg-muted">Reset</button>
         )}
+        {belumDiterima > 0 && <span className="rounded-full bg-vanila px-3 py-1.5 text-xs font-bold text-eerie">{belumDiterima} PO belum diterima</span>}
       </div>
 
       {list.length === 0 ? (
@@ -103,7 +114,8 @@ export function IncomingList({ rows, canEdit = true }: { rows: IncRow[]; warehou
   );
 }
 
-function GroupRow({ group }: { group: Group & { brandId?: string | null } }) {
+function GroupRow({ group }: { group: Group }) {
+  const empty = group.batches.length === 0;
   const initial = group.batches[0];
   const repairBatches = group.batches.slice(1);
 
@@ -118,18 +130,19 @@ function GroupRow({ group }: { group: Group & { brandId?: string | null } }) {
 
   const anyInbound = group.batches.some((b) => b.status === "inbound");
   const anyRepair = group.batches.some((b) => b.status === "repair");
-  const closed = group.batches[0]?.po_closed ?? false;
-  // Status TIDAK otomatis Selesai. Selesai hanya bila PO ditutup manual (Delivered).
-  // Bila Good = Qty In → "Lengkap · siap tutup" (menunggu penutupan manual dari lapangan).
-  const overall = closed ? <Badge tone="success">Selesai (Delivered)</Badge>
+  const closed = group.closed;
+  const overall = empty ? <Badge tone="accent">Belum diterima</Badge>
+    : closed ? <Badge tone="success">Selesai (Delivered)</Badge>
     : anyInbound ? <Badge tone="info">Menunggu QC</Badge>
     : anyRepair ? <Badge tone="accent">Menunggu Repair</Badge>
     : (totalRcv >= qtyIn && qtyIn > 0) ? <Badge tone="accent">Lengkap · siap tutup</Badge>
     : <Badge tone="neutral">Berjalan</Badge>;
 
+  const batchLabel = empty ? "belum ada batch" : `${group.batches.length} batch`;
+
   return (
-    <tr className="border-t border-border font-semibold hover:bg-muted/40">
-      <td className="py-3 pl-4 pr-3"><span className="font-mono text-xs text-primary">{group.poCode}</span><br /><span className="text-xs font-medium text-muted-foreground">{group.brand} · {group.batches.length} batch</span></td>
+    <tr className={"border-t border-border font-semibold hover:bg-muted/40 " + (empty ? "bg-vanila/10" : "")}>
+      <td className="py-3 pl-4 pr-3"><span className="font-mono text-xs text-primary">{group.poCode}</span><br /><span className="text-xs font-medium text-muted-foreground">{group.brand} · {batchLabel}</span></td>
       <td className="py-3 pr-3">{group.product || "—"}</td>
       <td className="py-3 pr-3 font-medium text-muted-foreground">{group.supplier}</td>
       <td></td>
@@ -144,7 +157,7 @@ function GroupRow({ group }: { group: Group & { brandId?: string | null } }) {
       <td className="py-3 pr-3">{overall}</td>
       <td className="py-3 pr-4 text-right">
         <Link href={`/finished-goods/incoming/${group.poId}`} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-muted">
-          <Eye className="h-4 w-4" /> Detail
+          <Eye className="h-4 w-4" /> {empty ? "Terima" : "Detail"}
         </Link>
       </td>
     </tr>

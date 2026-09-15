@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
-import { ArrowLeft, Printer, FileText, Package, QrCode, CheckCircle2, RotateCcw } from "lucide-react";
+import { useState, useTransition } from "react";
+import { ArrowLeft, Printer, FileText, Package, QrCode, CheckCircle2, RotateCcw, PackagePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { closePO } from "../actions";
+import { closePO, createInbound } from "../actions";
 import { QCDialog } from "../qc-dialog";
 import { RepairDialog } from "../repair-dialog";
 import type { IncRow, IncLine } from "../incoming-list";
@@ -15,12 +15,14 @@ import type { WarehouseOpt } from "../incoming-form";
 export type POInfo = {
   poId: string; poCode: string; spkCode: string; supplier: string;
   product: string; brand: string; totalQtyPo: number; status: string; closed: boolean;
+  spkId: string | null; brandId: string; supplierId: string | null;
 };
+export type InboundLine = { variantId: string | null; sku: string; size: string; productName: string; qtyPo: number; unitCost: number };
 
 const num = (v: string | number) => Number(v) || 0;
 const sum = (r: IncRow, f: (l: IncLine) => number) => r.lines.reduce((a, l) => a + f(l), 0);
 
-export function IncomingDetail({ info, rows, warehouses, canEdit }: { info: POInfo; rows: IncRow[]; warehouses: WarehouseOpt[]; canEdit: boolean }) {
+export function IncomingDetail({ info, rows, poLines, warehouses, canEdit }: { info: POInfo; rows: IncRow[]; poLines: InboundLine[]; warehouses: WarehouseOpt[]; canEdit: boolean }) {
   const initial = rows[0];
   const repairBatches = rows.slice(1);
   const qtyIn = initial ? sum(initial, (l) => num(l.qty_incoming)) : 0;
@@ -85,8 +87,78 @@ export function IncomingDetail({ info, rows, warehouses, canEdit }: { info: POIn
         {notRet > 0 && <p className="mt-2 text-xs font-semibold text-danger">{notRet} pcs tidak kembali dari repair (dianggap hilang di vendor).</p>}
       </div>
 
+      {/* Belum ada penerimaan → panel Inbound (terima barang) */}
+      {rows.length === 0 && (canEdit
+        ? <InboundPanel info={info} poLines={poLines} />
+        : <div className="card p-8 text-center text-sm font-medium text-muted-foreground">Barang belum diterima. Menunggu tim penerimaan mencatat barang datang.</div>
+      )}
+
       {/* Batch cards */}
       {rows.map((b) => <BatchCard key={b.id} row={b} warehouses={warehouses} canEdit={canEdit} />)}
+    </div>
+  );
+}
+
+function InboundPanel({ info, poLines }: { info: POInfo; poLines: InboundLine[] }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [date, setDate] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; });
+  const [qty, setQty] = useState<Record<string, string>>({});
+  const [notes, setNotes] = useState("");
+  const total = poLines.reduce((s, l) => s + (Number(qty[l.sku]) || 0), 0);
+
+  function submit() {
+    setError(null);
+    const lines = poLines
+      .map((l) => ({ variantId: l.variantId, sku: l.sku, size: l.size, productName: l.productName, qtyIncoming: Number(qty[l.sku]) || 0, unitCost: l.unitCost }))
+      .filter((l) => l.qtyIncoming > 0);
+    if (lines.length === 0) { setError("Isi qty barang datang minimal satu baris."); return; }
+    start(async () => {
+      const res = await createInbound({ poId: info.poId, poCode: info.poCode, spkId: info.spkId, brandId: info.brandId, supplierId: info.supplierId, receiptDate: date, notes, lines });
+      if (!res.ok) { setError(res.error); return; }
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 text-base font-extrabold"><PackagePlus className="h-4 w-4" /> Terima Barang (Inbound)</h3>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-semibold outline-none focus:border-primary/40" />
+      </div>
+      <p className="mb-3 text-sm font-medium text-muted-foreground">Catat qty barang datang per SKU. Good / Repair / Damage diisi tim QC di tahap berikutnya.</p>
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-muted/50 text-left text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              <th className="px-4 py-2">SKU</th><th className="px-4 py-2">Size</th>
+              <th className="px-4 py-2 text-right">Qty PO</th><th className="px-4 py-2 text-right">Qty Datang</th>
+            </tr>
+          </thead>
+          <tbody>
+            {poLines.map((l) => (
+              <tr key={l.sku} className="border-t border-border/60">
+                <td className="px-4 py-2"><span className="rounded-md bg-honeydew/40 px-2 py-0.5 font-mono text-xs font-bold">{l.sku || "\u2014"}</span></td>
+                <td className="px-4 py-2 font-semibold">{l.size || "\u2014"}</td>
+                <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">{l.qtyPo}</td>
+                <td className="px-4 py-2 text-right"><input type="number" value={qty[l.sku] ?? ""} onChange={(e) => setQty((p) => ({ ...p, [l.sku]: e.target.value }))} className="h-9 w-24 rounded-lg border border-border bg-background px-2 text-right text-sm font-semibold outline-none focus:border-primary/40" placeholder="0" /></td>
+              </tr>
+            ))}
+            <tr className="border-t border-border bg-muted/30 font-extrabold">
+              <td className="px-4 py-2" colSpan={3}>Total Qty Datang</td>
+              <td className="px-4 py-2 text-right tabular-nums">{total}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-3">
+        <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Catatan (opsional)" className="h-10 w-full rounded-xl border border-border bg-background px-3.5 text-sm font-medium outline-none focus:border-primary/40" />
+      </div>
+      {error && <p className="mt-2 text-sm font-semibold text-danger">{error}</p>}
+      <div className="mt-4 flex justify-end">
+        <Button size="sm" disabled={pending} onClick={submit}><CheckCircle2 className="h-4 w-4" /> {pending ? "Menyimpan\u2026" : "Simpan Inbound"}</Button>
+      </div>
     </div>
   );
 }

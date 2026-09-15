@@ -2,16 +2,15 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getRole } from "@/lib/roles";
 import { canAct } from "@/lib/permissions";
-import { IncomingForm, type POOpt, type WarehouseOpt } from "./incoming-form";
-import { IncomingList, type IncRow } from "./incoming-list";
+import type { WarehouseOpt } from "./incoming-form";
+import { IncomingList, type IncRow, type POStub } from "./incoming-list";
 
 async function getData() {
-  if (!isSupabaseConfigured()) return { pos: [] as POOpt[], warehouses: [] as WarehouseOpt[], rows: [] as IncRow[] };
+  if (!isSupabaseConfigured()) return { poStubs: [] as POStub[], warehouses: [] as WarehouseOpt[], rows: [] as IncRow[] };
   const supabase = createClient();
-  const [poRes, poLineRes, varRes, brandRes, supRes, whRes, rcptRes, rLineRes] = await Promise.all([
+  const [poRes, poLineRes, brandRes, supRes, whRes, rcptRes, rLineRes] = await Promise.all([
     supabase.from("production_pos").select("id,code,brand_id,spk_id,supplier_id,status,delivered_at").is("deleted_at", null).order("code", { ascending: false }),
-    supabase.from("production_po_lines").select("po_id,sku,size,product_name,qty,unit_cost,received_qty").is("deleted_at", null),
-    supabase.from("product_variants").select("id,sku").is("deleted_at", null),
+    supabase.from("production_po_lines").select("po_id,product_name").is("deleted_at", null),
     supabase.from("brands").select("id,name").is("deleted_at", null),
     supabase.from("suppliers").select("id,name").is("deleted_at", null),
     supabase.from("warehouses").select("id,name,kind,brand_id").is("deleted_at", null).order("name"),
@@ -23,36 +22,30 @@ async function getData() {
   const suppliers = (supRes.data ?? []).map((s) => ({ id: s.id as string, name: s.name as string }));
   const brandName = (id: string | null) => brands.find((b) => b.id === id)?.name ?? "—";
   const supplierName = (id: string | null) => suppliers.find((s) => s.id === id)?.name ?? "—";
-  const variantBySku = new Map<string, string>();
-  (varRes.data ?? []).forEach((v) => variantBySku.set(v.sku as string, v.id as string));
   const poCodeById = new Map<string, string>();
   const poClosedById = new Map<string, boolean>();
   (poRes.data ?? []).forEach((p) => { poCodeById.set(p.id as string, p.code as string); poClosedById.set(p.id as string, Boolean(p.delivered_at)); });
+
   const poLines = poLineRes.data ?? [];
+  const productByPo = new Map<string, string>();
+  for (const l of poLines) {
+    const pid = l.po_id as string;
+    if (!productByPo.has(pid) && l.product_name) productByPo.set(pid, l.product_name as string);
+  }
 
   const warehouses = (whRes.data ?? []).map((w) => ({ id: w.id as string, name: w.name as string, kind: (w.kind as string) ?? "warehouse", brandId: (w.brand_id as string | null) ?? null }));
 
-  // PO yang sudah pernah diterima (punya fg_receipt) tidak boleh diterima lagi (initial 1x).
-  const receivedPoIds = new Set<string>((rcptRes.data ?? []).map((r) => (r.po_id as string) ?? ""));
-
-  const pos: POOpt[] = (poRes.data ?? [])
-    .filter((p) => (p.status as string) !== "cancelled" && !receivedPoIds.has(p.id as string))
+  // Semua PO Produksi (belum dibatalkan) otomatis muncul di daftar inbound.
+  const poStubs: POStub[] = (poRes.data ?? [])
+    .filter((p) => (p.status as string) !== "cancelled")
     .map((p) => ({
-      id: p.id as string,
-      code: p.code as string,
-      brandId: (p.brand_id as string) ?? "",
-      brandName: brandName((p.brand_id as string | null) ?? null),
-      spkId: (p.spk_id as string | null) ?? null,
-      supplierId: (p.supplier_id as string | null) ?? null,
-      lines: poLines.filter((l) => l.po_id === p.id).map((l) => ({
-        variantId: variantBySku.get((l.sku as string) ?? "") ?? null,
-        sku: (l.sku as string | null) ?? "",
-        size: (l.size as string | null) ?? "",
-        productName: (l.product_name as string | null) ?? "",
-        qtyPo: Number(l.qty) || 0,
-        alreadyGood: Number(l.received_qty) || 0,
-        unitCost: Number(l.unit_cost) || 0,
-      })),
+      poId: p.id as string,
+      poCode: p.code as string,
+      brand: brandName((p.brand_id as string | null) ?? null),
+      brandId: (p.brand_id as string | null) ?? null,
+      supplier: supplierName((p.supplier_id as string | null) ?? null),
+      product: productByPo.get(p.id as string) ?? "—",
+      closed: Boolean(p.delivered_at),
     }));
 
   const rLines = rLineRes.data ?? [];
@@ -84,35 +77,32 @@ async function getData() {
     })),
   }));
 
-  return { pos, warehouses, rows };
+  return { poStubs, warehouses, rows };
 }
 
 export default async function IncomingPage() {
-  const { pos, warehouses, rows } = await getData();
+  const { poStubs, warehouses, rows } = await getData();
 
   let canEdit = true;
   if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "fg_incoming_qc");
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Finished Goods</p>
-          <h1 className="text-2xl font-extrabold">Incoming &amp; QC</h1>
-          <p className="mt-1 text-sm font-medium text-muted-foreground">
-            {rows.length} penerimaan. Alur bertahap: Inbound → Proses QC → (Repair → Terima Repair → QC lagi). Good ke gudang brand, Damage ke gudang damage.
-          </p>
-        </div>
-        <IncomingForm pos={pos} canEdit={canEdit} />
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Finished Goods</p>
+        <h1 className="text-2xl font-extrabold">Incoming &amp; QC</h1>
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
+          {poStubs.length} PO Produksi. Setiap PO yang dibuat otomatis masuk ke sini — klik <b>Terima</b> untuk catat barang datang, lalu QC bertahap (Good ke gudang brand, Damage ke gudang damage).
+        </p>
       </div>
 
-      {rows.length === 0 ? (
+      {poStubs.length === 0 && rows.length === 0 ? (
         <div className="card p-10 text-center">
-          <p className="font-bold">Belum ada penerimaan</p>
-          <p className="mt-1 text-sm font-medium text-muted-foreground">Klik &quot;Inbound Barang&quot;: pilih PO Produksi → catat qty datang. QC menyusul di tahap berikutnya.</p>
+          <p className="font-bold">Belum ada PO Produksi</p>
+          <p className="mt-1 text-sm font-medium text-muted-foreground">Buat PO Produksi dulu di Production → PO Produksi. Setelah dibuat, PO-nya otomatis muncul di sini untuk diterima.</p>
         </div>
       ) : (
-        <IncomingList rows={rows} warehouses={warehouses} canEdit={canEdit} />
+        <IncomingList rows={rows} pos={poStubs} warehouses={warehouses} canEdit={canEdit} />
       )}
     </div>
   );

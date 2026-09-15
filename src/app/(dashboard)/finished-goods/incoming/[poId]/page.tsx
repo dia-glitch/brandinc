@@ -36,6 +36,16 @@ export default async function IncomingDetailPage({ params }: { params: { poId: s
   const supplierName = (id: string | null) => suppliers.find((s) => s.id === id)?.name ?? "—";
   const poLines = poLineRes.data ?? [];
   const receipts = rcptRes.data ?? [];
+  const variantBySku = new Map<string, string>();
+  (varRes.data ?? []).forEach((v) => variantBySku.set(v.sku as string, v.id as string));
+  const inboundLines = poLines.map((l) => ({
+    variantId: variantBySku.get((l.sku as string) ?? "") ?? null,
+    sku: (l.sku as string | null) ?? "",
+    size: (l.size as string | null) ?? "",
+    productName: (l.product_name as string | null) ?? "",
+    qtyPo: Number(l.qty) || 0,
+    unitCost: Number(l.unit_cost) || 0,
+  }));
 
   const warehouses: WarehouseOpt[] = (whRes.data ?? []).map((w) => ({
     id: w.id as string, name: w.name as string, kind: (w.kind as string) ?? "warehouse", brandId: (w.brand_id as string | null) ?? null,
@@ -80,6 +90,9 @@ export default async function IncomingDetailPage({ params }: { params: { poId: s
   const info: POInfo = {
     poId,
     poCode,
+    spkId: (po.spk_id as string | null) ?? null,
+    brandId: (po.brand_id as string | null) ?? "",
+    supplierId: (po.supplier_id as string | null) ?? null,
     spkCode: ((spkRes.data as { code?: string } | null)?.code as string) ?? "—",
     supplier: supplierName((po.supplier_id as string | null) ?? null),
     product: (poLines[0]?.product_name as string) ?? "—",
@@ -92,5 +105,5 @@ export default async function IncomingDetailPage({ params }: { params: { poId: s
   let canEdit = true;
   if (isSupabaseConfigured()) canEdit = canAct(await getRole(supabase), "fg_incoming_qc");
 
-  return <IncomingDetail info={info} rows={rows} warehouses={warehouses} canEdit={canEdit} />;
+  return <IncomingDetail info={info} rows={rows} poLines={inboundLines} warehouses={warehouses} canEdit={canEdit} />;
 }
