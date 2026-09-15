@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { X, Wallet, FileText, Printer, PackageCheck, Eye } from "lucide-react";
+import { useState, useMemo } from "react";
+import { FileText, Printer, PackageCheck, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ListFilter } from "@/components/ui/list-filter";
 import { formatIDR } from "@/lib/utils";
 import { Modal, Field } from "@/components/ui/modal";
-import { payInvoice } from "./actions";
 
 export type Payable = {
   key: string; refType: string; invoiceNo: string; invoiceDate: string | null;
@@ -17,11 +15,10 @@ export type Payable = {
 };
 export type AccountOpt = { id: string; name: string; balance: number };
 
-export function APTable({ rows, accounts, canEdit = true }: { rows: Payable[]; accounts: AccountOpt[]; canEdit?: boolean }) {
+export function APTable({ rows }: { rows: Payable[]; accounts?: AccountOpt[]; canEdit?: boolean }) {
   const [q, setQ] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [pay, setPay] = useState<Payable | null>(null);
   const [detail, setDetail] = useState<Payable | null>(null);
 
   const brandOpts = useMemo(() => Array.from(new Set(rows.map((r) => r.brand))).filter((b) => b && b !== "—").sort(), [rows]);
@@ -88,8 +85,7 @@ export function APTable({ rows, accounts, canEdit = true }: { rows: Payable[]; a
         </div>
       )}
 
-      {detail && <APDetailModal payable={detail} canEdit={canEdit} onClose={() => setDetail(null)} onPay={() => { const r = detail; setDetail(null); setPay(r); }} />}
-      {pay && <PayDialog payable={pay} accounts={accounts} onClose={() => setPay(null)} />}
+      {detail && <APDetailModal payable={detail} onClose={() => setDetail(null)} />}
     </div>
   );
 }
@@ -103,15 +99,10 @@ function DocLink({ href, icon, label }: { href: string; icon: React.ReactNode; l
   );
 }
 
-function APDetailModal({ payable, canEdit, onClose, onPay }: { payable: Payable; canEdit: boolean; onClose: () => void; onPay: () => void }) {
+function APDetailModal({ payable, onClose }: { payable: Payable; onClose: () => void }) {
   const r = payable;
   const out = Math.max(0, r.total - r.paid);
-  const footer = (
-    <>
-      {canEdit && out > 0 && <Button size="sm" onClick={onPay}><Wallet className="h-4 w-4" /> Bayar</Button>}
-      <Button size="sm" variant="ghost" onClick={onClose}>Tutup</Button>
-    </>
-  );
+  const footer = <Button size="sm" variant="ghost" onClick={onClose}>Tutup</Button>;
   return (
     <Modal
       size="lg"
@@ -150,66 +141,3 @@ function APDetailModal({ payable, canEdit, onClose, onPay }: { payable: Payable;
     </Modal>
   );
 }
-
-function PayDialog({ payable, accounts, onClose }: { payable: Payable; accounts: AccountOpt[]; onClose: () => void }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const outstanding = Math.max(0, payable.total - payable.paid);
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
-  const [amount, setAmount] = useState(String(outstanding));
-  const [method, setMethod] = useState("transfer");
-  const [date, setDate] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; });
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    startTransition(async () => {
-      const res = await payInvoice({ refType: payable.refType, invoiceNo: payable.invoiceNo, accountId, date, amount: Number(amount) || 0, method, notes: "" });
-      if (!res.ok) { setError(res.error); return; }
-      onClose(); router.refresh();
-    });
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-eerie/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-surface p-6 shadow-soft">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-extrabold">Bayar Invoice</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
-        </div>
-        <div className="mb-4 rounded-xl bg-muted/60 px-3.5 py-2.5 text-sm">
-          <p className="font-mono font-bold">{payable.invoiceNo}</p>
-          <p className="text-muted-foreground">{payable.party} · Outstanding <b className="text-danger">{formatIDR(outstanding)}</b></p>
-        </div>
-        <form onSubmit={submit} className="space-y-4">
-          <div>
-            <label className={lbl}>Bayar dari Akun</label>
-            <select value={accountId} onChange={(e) => setAccountId(e.target.value)} className={inp + " px-3"}>
-              <option value="">— Pilih —</option>
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} · saldo {formatIDR(a.balance)}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className={lbl}>Nominal</label><input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className={inp} /></div>
-            <div><label className={lbl}>Tanggal</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inp} /></div>
-          </div>
-          <div>
-            <label className={lbl}>Metode</label>
-            <select value={method} onChange={(e) => setMethod(e.target.value)} className={inp + " px-3"}>
-              <option value="transfer">Transfer</option><option value="tunai">Tunai</option><option value="giro">Giro</option>
-            </select>
-          </div>
-          {error && <p className="text-sm font-semibold text-danger">{error}</p>}
-          <div className="flex justify-end gap-2.5 pt-1">
-            <Button type="button" variant="ghost" size="sm" onClick={onClose}>Batal</Button>
-            <Button type="submit" size="sm" disabled={pending}>{pending ? "Memproses…" : "Bayar"}</Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-const lbl = "mb-1.5 block text-sm font-bold";
-const inp = "h-11 w-full rounded-xl border border-border bg-background px-3.5 text-sm font-medium outline-none focus:border-primary/40";
