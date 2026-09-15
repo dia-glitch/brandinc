@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { label: "Stok", href: "/finished-goods" },
   { label: "Incoming & QC", href: "/finished-goods/incoming" },
   { label: "Invoice Reference", href: "/finished-goods/invoice" },
+  { label: "Stok", href: "/finished-goods" },
 ];
 
 export function FinishedGoodsTabs() {
