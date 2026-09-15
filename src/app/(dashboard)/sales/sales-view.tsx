@@ -19,7 +19,7 @@ export type BrandOpt = { id: string; name: string };
 export type ChannelOpt = { id: string; name: string; grup: string; warehouseId: string | null };
 export type AccountOpt = { id: string; name: string; balance: number };
 
-const SETTLE_LABEL: Record<string, string> = { ar: "AR / Konsinyasi", marketplace: "Marketplace (kas nyusul)" };
+const SETTLE_LABEL: Record<string, string> = { ar: "AR / Konsinyasi", marketplace: "Marketplace (kas nyusul)", cash: "Cash / POS" };
 
 export function SalesView({ rows, stock, brands, channels, accounts, isAdmin, canEdit = true, canReceive = true }: { rows: SaleRow[]; stock: StockOpt[]; brands: BrandOpt[]; channels: ChannelOpt[]; accounts: AccountOpt[]; isAdmin: boolean; canEdit?: boolean; canReceive?: boolean }) {
   const [q, setQ] = useState("");

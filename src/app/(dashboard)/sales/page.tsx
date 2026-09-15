@@ -56,7 +56,7 @@ async function getData() {
     const paid = paidByCode.get(o.code as string) ?? 0;
     return {
       id: o.id as string, code: o.code as string, brand: brandName((o.brand_id as string | null) ?? null), brandId: (o.brand_id as string | null) ?? null,
-      channel: chanName((o.channel_id as string | null) ?? null), channelId: (o.channel_id as string | null) ?? null, settlement: (o.settlement as string) ?? "ar",
+      channel: ((o.settlement as string) === "cash" ? "POS" : chanName((o.channel_id as string | null) ?? null)), channelId: (o.channel_id as string | null) ?? null, settlement: (o.settlement as string) ?? "ar",
       extOrderId: (o.ext_order_id as string | null) ?? "", customer: (o.customer as string | null) ?? "", date: (o.order_date as string | null) ?? null,
       subtotal: gross, discount, commission, ppn: Number(o.ppn) || 0, total, cogs, paid,
       status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
