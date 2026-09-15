@@ -105,7 +105,7 @@ export default async function LabaRugiPage() {
   let canEdit = true;
   if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "accounting");
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto w-full max-w-[1600px]">
       <PnlView entries={entries} expenses={expenses} brands={brands} channels={channels} canEdit={canEdit} />
     </div>
   );

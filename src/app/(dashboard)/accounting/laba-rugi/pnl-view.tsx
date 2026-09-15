@@ -164,7 +164,9 @@ export function PnlView({ entries, expenses, brands, channels, canEdit = true }:
       </div>
 
       {mode === "bulan" ? (
-        <SingleReport m={single} brandName={brandName} periodTitle={periodTitle} isGroup={isGroup} indukTotal={indukTotal} />
+        <div className="max-w-4xl space-y-5">
+          <SingleReport m={single} brandName={brandName} periodTitle={periodTitle} isGroup={isGroup} indukTotal={indukTotal} />
+        </div>
       ) : (
         <ComparisonReport cols={cols} total={rangeTotal as Metrics} brandName={brandName} periodTitle={periodTitle} netProfit={netProfit} netMargin={netMargin} />
       )}
