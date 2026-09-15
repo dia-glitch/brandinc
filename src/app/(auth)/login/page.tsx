@@ -33,7 +33,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-alice via-ghost to-vanila px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <span className="text-3xl font-black">
