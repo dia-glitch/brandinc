@@ -9,7 +9,7 @@ import { setCatalogImage } from "./actions";
 
 export type KatalogProduct = {
   id: string; code: string; name: string; retail: number;
-  image: string | null; sizes: string[];
+  image: string | null; sizes: string[]; colors: string[];
 };
 export type KatalogBrand = { id: string; name: string; products: KatalogProduct[] };
 
@@ -64,7 +64,7 @@ export function KatalogView({ brands, canEdit }: { brands: KatalogBrand[]; canEd
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {list.map((p) => (
               <Card key={p.id} p={p} canEdit={canEdit} />
             ))}
@@ -117,7 +117,7 @@ function Card({ p, canEdit }: { p: KatalogProduct; canEdit: boolean }) {
 
   return (
     <div className="card overflow-hidden p-0">
-      <div className="group relative aspect-[3/4] w-full bg-muted">
+      <div className="group relative aspect-[4/5] w-full bg-muted">
         {p.image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={p.image} alt={p.name} className="h-full w-full object-cover" />
@@ -161,6 +161,15 @@ function Card({ p, canEdit }: { p: KatalogProduct; canEdit: boolean }) {
       <div className="space-y-1.5 p-3">
         <span className="inline-block rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-bold tabular-nums text-muted-foreground">{p.code}</span>
         <p className="text-sm font-bold leading-tight">{p.name}</p>
+        {p.colors.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {p.colors.map((c) => (
+              <span key={c} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-foreground">
+                <span className="h-2 w-2 rounded-full bg-eerie/40" /> {c}
+              </span>
+            ))}
+          </div>
+        )}
         {p.sizes.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {p.sizes.map((s) => (
