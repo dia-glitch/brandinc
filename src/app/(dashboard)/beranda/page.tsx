@@ -6,6 +6,18 @@ import { getRole } from "@/lib/roles";
 import { canView, PAGE_KEYS, type PageKey } from "@/lib/permissions";
 import { SECTIONS } from "@/components/shell/nav-config";
 
+// Warna aksen per-area (pastel selaras tema) supaya ikon tidak polos.
+const ACCENTS: Record<string, string> = {
+  dashboard: "bg-indigo-100 text-indigo-700",
+  produksi: "bg-amber-100 text-amber-700",
+  inbound: "bg-emerald-100 text-emerald-700",
+  distribusi: "bg-sky-100 text-sky-700",
+  sales: "bg-rose-100 text-rose-700",
+  finance: "bg-violet-100 text-violet-700",
+  analitik: "bg-cyan-100 text-cyan-700",
+  setting: "bg-honeydew text-eerie",
+};
+
 export default async function BerandaPage() {
   const ALL: PageKey[] = [...PAGE_KEYS, "settings" as PageKey];
   let viewKeys: PageKey[] = ALL;
@@ -35,7 +47,7 @@ export default async function BerandaPage() {
           const first = s.vitems[0].dest!.href;
           return (
             <Link key={s.key} href={first} className="card group flex flex-col p-5 transition hover:border-primary/40 hover:shadow-card">
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Icon className="h-5 w-5" /></div>
+              <div className={"mb-3 flex h-11 w-11 items-center justify-center rounded-2xl " + (ACCENTS[s.key] ?? "bg-primary/10 text-primary")}><Icon className="h-5 w-5" /></div>
               <h2 className="text-base font-extrabold">{s.label}</h2>
               <p className="mt-0.5 text-xs font-medium text-muted-foreground">{s.desc}</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
