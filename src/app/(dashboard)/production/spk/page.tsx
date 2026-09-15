@@ -10,7 +10,7 @@ async function getData() {
     return { rows: [] as SPKRow[], brands: [] as BrandOpt[], products: [] as ProductOpt[], suppliers: [] as SupplierOpt[] };
   }
   const supabase = createClient();
-  const [spkRes, lineRes, brandRes, prodRes, varRes, supRes, sizeRes, specRes] = await Promise.all([
+  const [spkRes, lineRes, brandRes, prodRes, varRes, supRes, sizeRes, specRes, poRes] = await Promise.all([
     supabase.from("work_orders").select("id,code,spk_date,due_delivery,brand_id,supplier_id,supplier_type,merchandiser,button_accessories,care_label,vendor_comment,image_url,status,notes").is("deleted_at", null).order("code", { ascending: false }),
     supabase.from("work_order_lines").select("id,spk_id,sku,size,product_name,ratio,qty").is("deleted_at", null),
     supabase.from("brands").select("id,name,code").is("deleted_at", null).order("name"),
@@ -19,6 +19,7 @@ async function getData() {
     supabase.from("suppliers").select("id,name").is("deleted_at", null).order("name"),
     supabase.from("sizes").select("id,sort_order").is("deleted_at", null),
     supabase.from("work_order_specs").select("id,spk_id,name,type,values,sort_order").is("deleted_at", null).order("sort_order"),
+    supabase.from("production_pos").select("spk_id,delivered_at").is("deleted_at", null),
   ]);
 
   // Peta urutan ukuran (ikut sort_order master, bukan alfabet).
@@ -31,6 +32,9 @@ async function getData() {
   const supplierName = (id: string | null) => suppliers.find((s) => s.id === id)?.name ?? "—";
   const lines = lineRes.data ?? [];
   const variants = varRes.data ?? [];
+  // SPK "Completed" otomatis bila PO produksinya sudah ditutup (delivered).
+  const completedSpk = new Set<string>();
+  (poRes.data ?? []).forEach((p) => { if (p.delivered_at) completedSpk.add(p.spk_id as string); });
 
   const rows: SPKRow[] = (spkRes.data ?? []).map((s) => ({
     id: s.id as string,
@@ -45,7 +49,8 @@ async function getData() {
     care_label: (s.care_label as string | null) ?? null,
     vendor_comment: (s.vendor_comment as string | null) ?? null,
     image_url: (s.image_url as string | null) ?? null,
-    status: (s.status as string) ?? "open",
+    status: (s.status as string) ?? "draft",
+    completed: completedSpk.has(s.id as string),
     notes: (s.notes as string | null) ?? null,
     specs: (specRes.data ?? []).filter((sp) => sp.spk_id === s.id).map((sp) => ({
       name: (sp.name as string | null) ?? null,

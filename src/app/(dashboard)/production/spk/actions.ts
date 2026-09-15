@@ -79,7 +79,7 @@ export async function createSPK(input: SPKInput): Promise<Result> {
       vendor_comment: input.vendorComment.trim() || null,
       image_url: input.imageUrl.trim() || null,
       notes: input.notes.trim() || null,
-      status: "open",
+      status: "draft",
       is_demo: false,
     })
     .select("id")
@@ -161,8 +161,19 @@ export async function restoreSPK(id: string): Promise<SimpleResult> {
   if (!canAct(await getRole(supabase), "prod_spk")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("work_orders")
-    .update({ status: "open", updated_at: new Date().toISOString() })
+    .update({ status: "draft", updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/production/spk");
+  return { ok: true };
+}
+
+/** Ubah status progres SPK manual: draft <-> handover (Hand over to Production). */
+export async function setSpkStatus(id: string, status: "draft" | "handover"): Promise<SimpleResult> {
+  const supabase = createClient();
+  if (!canAct(await getRole(supabase), "prod_spk")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  if (status !== "draft" && status !== "handover") return { ok: false, error: "Status tidak valid." };
+  const { error } = await supabase.from("work_orders").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/production/spk");
   return { ok: true };
