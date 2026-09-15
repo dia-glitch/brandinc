@@ -18,7 +18,9 @@ async function getData(): Promise<{ rows: CPRow[]; materials: MaterialOpt[]; war
 
   const materials: MaterialOpt[] = (matRes.data ?? []).map((m) => ({ id: m.id as string, name: m.name as string, code: (m.code as string | null) ?? null, unit: (m.unit as string | null) ?? null }));
   const whAll = (whRes.data ?? []).map((w) => ({ id: w.id as string, name: w.name as string, kind: (w.kind as string) ?? "warehouse" }));
-  const warehouses: WarehouseOpt[] = whAll.filter((w) => w.kind === "material" || w.kind === "warehouse").map((w) => ({ id: w.id, name: w.name }));
+  // Semua pembelian bahan baku masuk ke gudang bahan baku (kind "material") — tanpa opsi lain.
+  const materialWh = whAll.filter((w) => w.kind === "material");
+  const warehouses: WarehouseOpt[] = (materialWh.length ? materialWh : whAll).map((w) => ({ id: w.id, name: w.name }));
   const whName = (id: string | null) => whAll.find((w) => w.id === id)?.name ?? "—";
 
   const cpLines = cpLineRes.data ?? [];

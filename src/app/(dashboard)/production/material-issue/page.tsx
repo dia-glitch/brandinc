@@ -23,7 +23,9 @@ async function getData() {
   const brandName = (id: string | null) => brands.find((b) => b.id === id)?.name ?? "—";
   // Gudang bahan baku (kind material) diprioritaskan, plus umum.
   const whAll = (whRes.data ?? []).map((w) => ({ id: w.id as string, name: w.name as string, kind: (w.kind as string) ?? "warehouse" }));
-  const warehouses: WarehouseOpt[] = whAll.filter((w) => w.kind === "material" || w.kind === "warehouse").map((w) => ({ id: w.id, name: w.name }));
+  // Material issue selalu keluar dari gudang bahan baku (kind "material") — tanpa opsi lain.
+  const materialWh = whAll.filter((w) => w.kind === "material");
+  const warehouses: WarehouseOpt[] = (materialWh.length ? materialWh : whAll).map((w) => ({ id: w.id, name: w.name }));
   const whName = (id: string | null) => whAll.find((w) => w.id === id)?.name ?? "—";
 
   // Saldo per material di gudang bahan pertama (asumsi 1 gudang RM). Ambil saldo terbesar bila banyak.

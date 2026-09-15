@@ -159,7 +159,7 @@ function CPForm({ materials, warehouses, cashAdvances, onClose }: { materials: M
   const [saved, setSaved] = useState<string | null>(null);
 
   const [prId, setPrId] = useState(cashAdvances[0]?.id ?? "");
-  const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id ?? "");
+  const warehouseId = warehouses[0]?.id ?? ""; // dikunci ke gudang bahan baku
   const [vendor, setVendor] = useState("");
   const [notaNo, setNotaNo] = useState("");
   const [date, setDate] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; });
@@ -223,7 +223,7 @@ function CPForm({ materials, warehouses, cashAdvances, onClose }: { materials: M
                 options={cashAdvances.map((c) => ({ value: c.id, label: `${c.code}${c.payee ? " · " + c.payee : ""}`, hint: `sisa ${formatIDR(c.remaining)}` }))} />
               {ca && <p className="mt-1 text-xs font-semibold text-muted-foreground">Sisa dana CA: <b className={overCA ? "text-danger" : "text-emerald-700"}>{formatIDR(ca.remaining)}</b></p>}
             </div>
-            <div><label className={lbl}>Gudang</label><select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} className={sel}><option value="">— Pilih —</option>{warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select></div>
+            <div><label className={lbl}>Gudang</label><div className={sel + " flex items-center text-muted-foreground"}>{warehouses[0]?.name ?? "Gudang Bahan Baku"}</div></div>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div><label className={lbl}>Vendor / Toko</label><input value={vendor} onChange={(e) => setVendor(e.target.value)} className={inp} placeholder="mis. Toko Kain Jaya" /></div>

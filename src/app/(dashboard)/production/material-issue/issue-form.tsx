@@ -24,7 +24,7 @@ export function IssueForm({ spks, warehouses, materials, canEdit = true }: { spk
   const [saved, setSaved] = useState<{ id: string; code: string } | null>(null);
 
   const [spkId, setSpkId] = useState("");
-  const [warehouseId, setWarehouseId] = useState(warehouses[0]?.id ?? "");
+  const warehouseId = warehouses[0]?.id ?? ""; // dikunci ke gudang bahan baku
   const [issueDate, setIssueDate] = useState("");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<Line[]>([{ key: newKey(), materialId: "", qty: "" }]);
@@ -104,10 +104,7 @@ export function IssueForm({ spks, warehouses, materials, canEdit = true }: { spk
                 </div>
                 <div>
                   <label className={lbl}>Gudang Bahan</label>
-                  <select value={warehouseId} onChange={(e) => setWarehouseId(e.target.value)} className={sel}>
-                    <option value="">— Pilih —</option>
-                    {warehouses.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                  </select>
+                  <div className={sel + " flex items-center text-muted-foreground"}>{warehouses[0]?.name ?? "Gudang Bahan Baku"}</div>
                 </div>
                 <div>
                   <label className={lbl}>Tanggal</label>
