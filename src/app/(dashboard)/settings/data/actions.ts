@@ -55,3 +55,51 @@ export async function resetDemoData(): Promise<{ ok: true; tables: number } | { 
   ["/settings/data", "/", "/inventory", "/inventory/stock", "/sales", "/finance", "/accounting", "/distribution", "/katalog", "/lifecycle"].forEach((p) => revalidatePath(p));
   return { ok: true, tables: TX_TABLES.length };
 }
+
+
+/**
+ * Master data demo (child -> parent, hormati FK).
+ * variants -> products; materials -> material_categories; suppliers -> supplier_categories.
+ * DIPERTAHANKAN saat go-live: brands, warehouses, cash_accounts (akun), COA, customers.
+ */
+const MASTER_TABLES = [
+  "product_variants",
+  "products",
+  "materials",
+  "suppliers",
+  "categories",
+  "colors",
+  "sizes",
+  "material_categories",
+  "supplier_categories",
+];
+
+/**
+ * GO-LIVE — Mulai Bersih. Hapus SELURUH transaksi + saldo turunan DAN master data demo
+ * (materials, produk, SKU, supplier, kategori/warna/ukuran) di Company DEMO, plus nol-kan
+ * saldo awal kas/bank. Yang tetap: brands, gudang/warehouses, akun kas/bank (tanpa saldo),
+ * dan Chart of Accounts. Dipakai sekali saat pindah dari demo ke produksi. Hanya admin.
+ */
+export async function resetForGoLive(): Promise<{ ok: true; tables: number } | { ok: false; error: string }> {
+  const supabase = createClient();
+  if (!(await isAdmin(supabase))) return { ok: false, error: "Hanya admin yang boleh mulai bersih (go-live)." };
+
+  // 1) Transaksi & saldo turunan dulu (biar FK master aman dihapus).
+  for (const t of TX_TABLES) {
+    const { error } = await supabase.from(t).delete().eq("company_id", DEMO_COMPANY_ID);
+    if (error) return { ok: false, error: `Gagal menghapus ${t}: ${error.message}` };
+  }
+  // 2) Master data demo (child -> parent).
+  for (const t of MASTER_TABLES) {
+    const { error } = await supabase.from(t).delete().eq("company_id", DEMO_COMPANY_ID);
+    if (error) return { ok: false, error: `Gagal menghapus ${t}: ${error.message}` };
+  }
+  // 3) Nol-kan saldo awal kas/bank (akun tetap ada).
+  {
+    const { error } = await supabase.from("cash_accounts").update({ opening_balance: 0 }).eq("company_id", DEMO_COMPANY_ID);
+    if (error) return { ok: false, error: `Gagal reset saldo awal kas/bank: ${error.message}` };
+  }
+
+  ["/settings/data", "/", "/inventory", "/inventory/stock", "/sales", "/finance", "/accounting", "/distribution", "/katalog", "/lifecycle", "/raw-material/materials", "/production/products", "/master-data/suppliers"].forEach((pth) => revalidatePath(pth));
+  return { ok: true, tables: TX_TABLES.length + MASTER_TABLES.length };
+}

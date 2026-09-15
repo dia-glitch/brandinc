@@ -1,7 +1,7 @@
 import { Plus, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SettingsTabs } from "../tabs";
-import { ResetDemoButton } from "./reset-demo-button";
+import { ResetDemoButton, GoLiveResetButton } from "./reset-demo-button";
 
 const SETS = [
   { name: "Sample Produk & Stok", rows: "1.240", date: "12 Jul" },
@@ -60,6 +60,18 @@ export default function DataManagementPage() {
           serta <b>mengosongkan foto katalog &amp; launch date</b> produk. <b>Master data (materials, produk, SKU, supplier) &amp; COA tetap; akun kas/bank tetap ada.</b> Hanya admin.
         </p>
         <ResetDemoButton />
+      </div>
+
+      {/* Go-Live: mulai bersih (hapus juga master data demo) */}
+      <div className="rounded-2xl border border-danger/40 bg-danger/5 p-5">
+        <p className="flex items-center gap-2 font-extrabold text-danger">🚀 Mulai Bersih (Go-Live)</p>
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
+          Menghapus SELURUH data demo: transaksi <b>dan</b> master data contoh
+          (materials, produk, SKU, supplier, kategori/warna/ukuran) + nol-kan saldo awal kas/bank.
+          Dipakai <b>sekali</b> saat pindah dari demo ke produksi, supaya mulai dari kosong dengan data asli.
+          <b> Brand, gudang, akun kas/bank, dan COA tetap.</b> Tidak bisa dibatalkan. Hanya admin.
+        </p>
+        <GoLiveResetButton />
       </div>
     </div>
   );
