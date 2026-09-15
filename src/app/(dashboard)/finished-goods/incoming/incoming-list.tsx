@@ -26,6 +26,7 @@ type Group = { poId: string; poCode: string; brand: string; brandId: string | nu
 export function IncomingList({ rows, pos = [], canEdit = true }: { rows: IncRow[]; pos?: POStub[]; warehouses?: WarehouseOpt[]; canEdit?: boolean }) {
   const [brandFilter, setBrandFilter] = useState("");
   const [q, setQ] = useState("");
+  const [view, setView] = useState<"aktif" | "selesai">("aktif");
   void canEdit;
 
   const groups = useMemo(() => {
@@ -49,14 +50,25 @@ export function IncomingList({ rows, pos = [], canEdit = true }: { rows: IncRow[
   }, [groups]);
 
   const query = q.trim().toLowerCase();
+  const aktifCount = groups.filter((g) => !g.closed).length;
+  const selesaiCount = groups.filter((g) => g.closed).length;
   const list = groups
+    .filter((g) => (view === "selesai" ? g.closed : !g.closed))
     .filter((g) => (!brandFilter || g.brandId === brandFilter))
     .filter((g) => !query || g.poCode.toLowerCase().includes(query) || (g.product ?? "").toLowerCase().includes(query));
 
-  const belumDiterima = groups.filter((g) => g.batches.length === 0).length;
+  const belumDiterima = groups.filter((g) => !g.closed && g.batches.length === 0).length;
 
   return (
     <div className="space-y-3">
+      <div className="flex w-fit rounded-xl border border-border bg-background p-0.5">
+        {([["aktif", "Aktif", aktifCount], ["selesai", "Selesai", selesaiCount]] as const).map(([v, label, n]) => (
+          <button key={v} onClick={() => setView(v)} data-active={view === v}
+            className={"inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-sm font-bold transition " + (view === v ? "bg-eerie text-white" : "text-muted-foreground hover:text-foreground")}>
+            {label} <span className={"rounded-full px-1.5 text-[11px] " + (view === v ? "bg-white/20" : "bg-muted")}>{n}</span>
+          </button>
+        ))}
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[220px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
