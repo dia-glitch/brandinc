@@ -8,6 +8,8 @@ const TABS: { label: string; href: string; key: PageKey }[] = [
   { label: "Hutang (AP)", href: "/finance", key: "fin_other" },
   { label: "Piutang (AR)", href: "/finance/ar", key: "fin_other" },
   { label: "Payment Request", href: "/finance/payment-request", key: "fin_payment_request" },
+  { label: "Finance Desk", href: "/finance/desk", key: "fin_other" },
+  { label: "Payment Today", href: "/finance/payment-today", key: "fin_other" },
   { label: "Expenses", href: "/finance/expenses", key: "fin_other" },
   { label: "Refund", href: "/finance/refund", key: "fin_other" },
   { label: "Kas & Bank", href: "/finance/cash", key: "fin_other" },
