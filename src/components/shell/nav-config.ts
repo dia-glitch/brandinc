@@ -45,6 +45,7 @@ const Finance: NavItem = { label: "Finance", icon: Wallet, pages: [
 const Accounting: NavItem = { label: "Accounting", icon: BookText, pages: [{ key: "accounting", href: "/accounting" }] };
 const BusinessIntelligence: NavItem = { label: "Business Intelligence", icon: BarChart3, pages: [{ key: "dashboard", href: "/bi" }] };
 const MasterData: NavItem = { label: "Master Data", icon: Boxes, pages: [{ key: "master_data", href: "/master-data/brands" }] };
+const MasterProduksi: NavItem = { label: "Master Produksi", icon: Boxes, pages: [{ key: "prod_master", href: "/master-data/categories" }] };
 const PenggunaRole: NavItem = { label: "Pengguna & Role", icon: Users, pages: [{ key: "settings", href: "/settings/users" }] };
 const AksesHalaman: NavItem = { label: "Akses Halaman", icon: ShieldCheck, pages: [{ key: "settings", href: "/settings/access" }] };
 const DataManagement: NavItem = { label: "Data Management", icon: Database, pages: [{ key: "settings", href: "/settings/data" }] };
@@ -55,19 +56,24 @@ const Panduan: NavItem = { label: "Panduan", icon: HelpCircle, pages: [{ key: "d
  * hanya menampilkan menu section yang sedang dibuka → tidak terlalu penuh.
  */
 export const SECTIONS: NavSection[] = [
-  { key: "dashboard", label: "Dashboard", desc: "Ringkasan bisnis", icon: LayoutDashboard, items: [Dashboard] },
-  { key: "produksi", label: "Production & Purchasing", desc: "Bahan baku & produksi", icon: Factory, items: [RawMaterial, Production] },
+  { key: "dashboard", label: "Dashboard", desc: "Ringkasan bisnis & panduan", icon: LayoutDashboard, items: [Dashboard, Panduan] },
+  { key: "produksi", label: "Production & Purchasing", desc: "Bahan baku, produksi & master data tim", icon: Factory, items: [RawMaterial, Production, MasterProduksi] },
   { key: "inbound", label: "Inbound / Receiving", desc: "Penerimaan, stok & invoice", icon: PackageOpen, items: [FinishedGoods, Invoice, Inventory] },
   { key: "distribusi", label: "Distribution", desc: "Distribusi, ledger stok & channel", icon: Truck, items: [Distribution, InventoryLedger] },
   { key: "sales", label: "Sales", desc: "Penjualan, katalog & lifecycle", icon: CreditCard, items: [Sales, Katalog, Lifecycle] },
   { key: "finance", label: "Finance & Accounting", desc: "Keuangan & akuntansi", icon: Wallet, items: [Finance, Accounting] },
   { key: "analitik", label: "Analitik & Laporan", desc: "Business Intelligence & laporan", icon: BarChart3, items: [BusinessIntelligence] },
-  { key: "setting", label: "Setting", desc: "Master data & pengaturan", icon: Settings, items: [MasterData, PenggunaRole, AksesHalaman, DataManagement, Panduan] },
+  { key: "setting", label: "Setting", desc: "Master data & pengaturan", icon: Settings, items: [MasterData, PenggunaRole, AksesHalaman, DataManagement] },
 ];
 
 /** Section key untuk sebuah path (cocokkan segmen modul teratas). null = hub/luar section. */
 export function sectionForPath(pathname: string): string | null {
   if (pathname === "/") return "dashboard";
+  // Master data tim (kategori/warna/ukuran/supplier) -> Production; sisanya -> Setting.
+  if (pathname.startsWith("/master-data")) {
+    const team = ["/master-data/categories", "/master-data/colors", "/master-data/sizes", "/master-data/suppliers"];
+    return team.some((t) => pathname.startsWith(t)) ? "produksi" : "setting";
+  }
   const seg = pathname.split("/")[1] ?? "";
   if (!seg || seg === "beranda") return null;
   for (const s of SECTIONS) for (const it of s.items) for (const p of it.pages) {

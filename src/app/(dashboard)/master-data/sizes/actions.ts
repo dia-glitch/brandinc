@@ -17,7 +17,7 @@ type Result = { ok: true } | { ok: false; error: string };
 
 export async function createSize(input: SizeInput): Promise<Result> {
   const supabase = createClient();
-  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  if (!canAct(await getRole(supabase), "prod_master")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
 
   // Auto urutan bila tidak diisi (ambil terbesar + 10).
   let order = input.sortOrder;
@@ -46,7 +46,7 @@ export async function createSize(input: SizeInput): Promise<Result> {
 
 export async function updateSize(id: string, input: SizeInput): Promise<Result> {
   const supabase = createClient();
-  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  if (!canAct(await getRole(supabase), "prod_master")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("sizes")
     .update({
@@ -64,7 +64,7 @@ export async function updateSize(id: string, input: SizeInput): Promise<Result> 
 
 export async function deleteSize(id: string): Promise<Result> {
   const supabase = createClient();
-  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  if (!canAct(await getRole(supabase), "prod_master")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("sizes")
     .update({ deleted_at: new Date().toISOString() })

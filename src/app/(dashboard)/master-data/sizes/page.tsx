@@ -22,7 +22,7 @@ export default async function SizesPage() {
   const sizes = await getSizes();
 
   let canEdit = true;
-  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "master_data");
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "prod_master");
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">

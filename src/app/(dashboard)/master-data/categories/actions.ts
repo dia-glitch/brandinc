@@ -17,7 +17,7 @@ type Result = { ok: true } | { ok: false; error: string };
 
 export async function createCategory(input: CategoryInput): Promise<Result> {
   const supabase = createClient();
-  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  if (!canAct(await getRole(supabase), "prod_master")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase.from("categories").insert({
     company_id: DEMO_COMPANY_ID,
     brand_id: null, // kategori dipakai bersama semua brand
@@ -34,7 +34,7 @@ export async function createCategory(input: CategoryInput): Promise<Result> {
 
 export async function updateCategory(id: string, input: CategoryInput): Promise<Result> {
   const supabase = createClient();
-  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  if (!canAct(await getRole(supabase), "prod_master")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("categories")
     .update({
@@ -53,7 +53,7 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
 /** Soft delete: sembunyikan kategori + sub-kategorinya sekaligus. */
 export async function deleteCategory(id: string): Promise<Result> {
   const supabase = createClient();
-  if (!canAct(await getRole(supabase), "master_data")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  if (!canAct(await getRole(supabase), "prod_master")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
   const { error } = await supabase
     .from("categories")
     .update({ deleted_at: new Date().toISOString() })

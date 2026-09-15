@@ -24,7 +24,7 @@ export default async function ColorsPage() {
   const subCount = colors.length - tops.length;
 
   let canEdit = true;
-  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "master_data");
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "prod_master");
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">

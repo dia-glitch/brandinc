@@ -23,7 +23,7 @@ export default async function CategoriesPage() {
   const parentsOpt = tops.map((c) => ({ id: c.id, name: c.name }));
 
   let canEdit = true;
-  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "master_data");
+  if (isSupabaseConfigured()) canEdit = canAct(await getRole(createClient()), "prod_master");
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
