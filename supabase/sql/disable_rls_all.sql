@@ -54,3 +54,5 @@ alter table public.warehouses disable row level security;
 alter table public.work_order_lines disable row level security;
 alter table public.work_order_specs disable row level security;
 alter table public.work_orders disable row level security;
+alter table public.ap_verifications disable row level security;
+alter table public.payment_queue disable row level security;
