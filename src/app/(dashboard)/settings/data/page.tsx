@@ -56,7 +56,8 @@ export default function DataManagementPage() {
         <p className="flex items-center gap-2 font-extrabold text-danger">Reset Semua Data Demo</p>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Menghapus SELURUH data <b>transaksi</b> &amp; saldo turunan di Company DEMO (penjualan, retur, piutang, pembelian,
-          produksi, jurnal, pergerakan &amp; saldo stok). <b>Master data, COA, dan akun kas/bank tetap.</b> Hanya admin.
+          produksi, jurnal, pergerakan &amp; saldo stok), <b>menol-kan saldo awal kas/bank</b> (Kas &amp; Bank + Laba Ditahan di Neraca jadi 0),
+          serta <b>mengosongkan foto katalog &amp; launch date</b> produk. <b>Master data (materials, produk, SKU, supplier) &amp; COA tetap; akun kas/bank tetap ada.</b> Hanya admin.
         </p>
         <ResetDemoButton />
       </div>
