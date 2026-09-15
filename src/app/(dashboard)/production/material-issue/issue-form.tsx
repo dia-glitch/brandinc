@@ -8,7 +8,7 @@ import { SearchSelect } from "@/components/ui/search-select";
 import { formatIDR } from "@/lib/utils";
 import { createMaterialIssue } from "./actions";
 
-export type SpkOpt = { id: string; code: string; brandId: string; brandName: string };
+export type SpkOpt = { id: string; code: string; brandId: string; brandName: string; productName: string };
 export type WarehouseOpt = { id: string; name: string };
 export type MaterialOpt = { id: string; name: string; code: string | null; unit: string | null; brandId: string | null; avail: number; avg: number };
 
@@ -94,9 +94,13 @@ export function IssueForm({ spks, warehouses, materials, canEdit = true }: { spk
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
                   <label className={lbl}>SPK</label>
-                  <SearchSelect value={spkId} onChange={setSpkId} placeholder="Cari SPK / brand…"
+                  <SearchSelect value={spkId} onChange={setSpkId} placeholder="Cari SPK / produk / brand…"
                     inputClassName="h-11 rounded-xl px-3.5 pr-8 font-medium"
-                    options={spks.map((s) => ({ value: s.id, label: `${s.code} · ${s.brandName}` }))} />
+                    options={spks.map((s) => ({
+                      value: s.id,
+                      label: s.productName ? `${s.code} · ${s.productName}` : `${s.code} · ${s.brandName}`,
+                      hint: s.productName ? s.brandName : undefined,
+                    }))} />
                 </div>
                 <div>
                   <label className={lbl}>Gudang Bahan</label>

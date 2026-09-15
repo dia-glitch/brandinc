@@ -8,8 +8,9 @@ import { IssueList, type IssueRow } from "./issue-list";
 async function getData() {
   if (!isSupabaseConfigured()) return { spks: [] as SpkOpt[], warehouses: [] as WarehouseOpt[], materials: [] as MaterialOpt[], rows: [] as IssueRow[] };
   const supabase = createClient();
-  const [spkRes, brandRes, matRes, balRes, whRes, issRes, issLineRes] = await Promise.all([
+  const [spkRes, spkLineRes, brandRes, matRes, balRes, whRes, issRes, issLineRes] = await Promise.all([
     supabase.from("work_orders").select("id,code,brand_id,status").is("deleted_at", null).order("code", { ascending: false }),
+    supabase.from("work_order_lines").select("spk_id,product_name").is("deleted_at", null),
     supabase.from("brands").select("id,name").is("deleted_at", null),
     supabase.from("materials").select("id,name,code,unit,brand_id").is("deleted_at", null).eq("is_active", true).order("name"),
     supabase.from("material_stock_balances").select("material_id,warehouse_id,qty_on_hand,moving_avg_cost").is("deleted_at", null).eq("stock_status", "available"),
@@ -40,9 +41,25 @@ async function getData() {
     return { id: m.id as string, name: m.name as string, code: (m.code as string | null) ?? null, unit: (m.unit as string | null) ?? null, brandId: (m.brand_id as string | null) ?? null, avail: bal?.qty ?? 0, avg: bal?.avg ?? 0 };
   });
 
+  // Nama produk per SPK (dari work_order_lines) — untuk dicari/ditampilkan di dropdown.
+  const spkProducts = new Map<string, string[]>();
+  for (const l of spkLineRes.data ?? []) {
+    const sid = l.spk_id as string | null;
+    const nm = (l.product_name as string | null)?.trim();
+    if (!sid || !nm) continue;
+    const arr = spkProducts.get(sid) ?? [];
+    if (!arr.includes(nm)) arr.push(nm);
+    spkProducts.set(sid, arr);
+  }
   const spks: SpkOpt[] = (spkRes.data ?? [])
     .filter((s) => (s.status as string) !== "cancelled")
-    .map((s) => ({ id: s.id as string, code: s.code as string, brandId: (s.brand_id as string) ?? "", brandName: brandName((s.brand_id as string | null) ?? null) }));
+    .map((s) => ({
+      id: s.id as string,
+      code: s.code as string,
+      brandId: (s.brand_id as string) ?? "",
+      brandName: brandName((s.brand_id as string | null) ?? null),
+      productName: (spkProducts.get(s.id as string) ?? []).join(", "),
+    }));
   const spkCode = (id: string | null) => spks.find((s) => s.id === id)?.code ?? "—";
   const spkBrand = (id: string | null) => spks.find((s) => s.id === id)?.brandName ?? "—";
 
