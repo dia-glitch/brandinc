@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Printer, FileText, Package, QrCode } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { ArrowLeft, Printer, FileText, Package, QrCode, CheckCircle2, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { closePO } from "../actions";
 import { QCDialog } from "../qc-dialog";
 import { RepairDialog } from "../repair-dialog";
 import type { IncRow, IncLine } from "../incoming-list";
@@ -10,7 +14,7 @@ import type { WarehouseOpt } from "../incoming-form";
 
 export type POInfo = {
   poId: string; poCode: string; spkCode: string; supplier: string;
-  product: string; brand: string; totalQtyPo: number; status: string;
+  product: string; brand: string; totalQtyPo: number; status: string; closed: boolean;
 };
 
 const num = (v: string | number) => Number(v) || 0;
@@ -30,7 +34,11 @@ export function IncomingDetail({ info, rows, warehouses, canEdit }: { info: POIn
 
   const anyInbound = rows.some((b) => b.status === "inbound");
   const anyRepair = rows.some((b) => b.status === "repair");
-  const overall = anyInbound ? <Badge tone="info">Menunggu QC</Badge> : anyRepair ? <Badge tone="accent">Menunggu Repair</Badge> : <Badge tone="success">Selesai</Badge>;
+  const overall = info.closed ? <Badge tone="success">Selesai (Delivered)</Badge>
+    : anyInbound ? <Badge tone="info">Menunggu QC</Badge>
+    : anyRepair ? <Badge tone="accent">Menunggu Repair</Badge>
+    : (totalRcv >= qtyIn && qtyIn > 0) ? <Badge tone="accent">Lengkap · siap tutup</Badge>
+    : <Badge tone="neutral">Berjalan</Badge>;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -49,9 +57,12 @@ export function IncomingDetail({ info, rows, warehouses, canEdit }: { info: POIn
 
       {/* Informasi PO */}
       <div className="card p-5">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-extrabold">Informasi PO</h2>
-          {overall}
+          <div className="flex items-center gap-2">
+            {overall}
+            {canEdit && <ClosePOToggle poId={info.poId} closed={info.closed} />}
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <Info label="PO Number" value={info.poCode} mono />
@@ -152,6 +163,17 @@ function BatchCard({ row, warehouses, canEdit }: { row: IncRow; warehouses: Ware
         </table>
       </div>
     </div>
+  );
+}
+
+function ClosePOToggle({ poId, closed }: { poId: string; closed: boolean }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  return (
+    <Button size="sm" variant={closed ? "outline" : "primary"} disabled={pending}
+      onClick={() => start(async () => { const r = await closePO(poId, !closed); if (r.ok) router.refresh(); })}>
+      {closed ? <><RotateCcw className="h-4 w-4" /> Buka kembali PO</> : <><CheckCircle2 className="h-4 w-4" /> Tutup PO (Delivered)</>}
+    </Button>
   );
 }
 

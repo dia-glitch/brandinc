@@ -13,7 +13,7 @@ export type IncLine = {
 };
 export type IncRow = {
   id: string; code: string; po_id: string; po_code: string; brand_id: string | null; brand_name: string; supplier_name: string;
-  product_name: string; receipt_date: string | null; incoming_no: number; status: string; invoice_no: string | null; lines: IncLine[];
+  product_name: string; receipt_date: string | null; incoming_no: number; status: string; invoice_no: string | null; po_closed: boolean; lines: IncLine[];
 };
 
 const num = (v: string | number) => Number(v) || 0;
@@ -118,14 +118,14 @@ function GroupRow({ group }: { group: Group & { brandId?: string | null } }) {
 
   const anyInbound = group.batches.some((b) => b.status === "inbound");
   const anyRepair = group.batches.some((b) => b.status === "repair");
-  const overall = anyInbound ? <Badge tone="info">Menunggu QC</Badge> : anyRepair ? <Badge tone="accent">Menunggu Repair</Badge> : <Badge tone="success">Selesai</Badge>;
-
-  const invoiceable = group.batches.filter((b) => b.status !== "inbound" && sumLines(b, (l) => num(l.qty_good)) > 0);
-  const invoiced = invoiceable.filter((b) => b.invoice_no);
-  const invoiceBadge = invoiceable.length === 0 ? null
-    : invoiced.length === invoiceable.length ? <Badge tone="success">Invoice ✓</Badge>
-    : invoiced.length === 0 ? <Badge tone="danger">Invoice belum</Badge>
-    : <Badge tone="accent">Invoice {invoiced.length}/{invoiceable.length}</Badge>;
+  const closed = group.batches[0]?.po_closed ?? false;
+  // Status TIDAK otomatis Selesai. Selesai hanya bila PO ditutup manual (Delivered).
+  // Bila Good = Qty In → "Lengkap · siap tutup" (menunggu penutupan manual dari lapangan).
+  const overall = closed ? <Badge tone="success">Selesai (Delivered)</Badge>
+    : anyInbound ? <Badge tone="info">Menunggu QC</Badge>
+    : anyRepair ? <Badge tone="accent">Menunggu Repair</Badge>
+    : (totalRcv >= qtyIn && qtyIn > 0) ? <Badge tone="accent">Lengkap · siap tutup</Badge>
+    : <Badge tone="neutral">Berjalan</Badge>;
 
   return (
     <tr className="border-t border-border font-semibold hover:bg-muted/40">
@@ -141,7 +141,7 @@ function GroupRow({ group }: { group: Group & { brandId?: string | null } }) {
       <td className="py-3 px-2 text-right font-bold tabular-nums text-danger">{damage || "—"}</td>
       <td className="py-3 px-2 text-right font-bold tabular-nums text-danger/70">{notRet || "—"}</td>
       <td className="py-3 px-2 text-right text-base font-black tabular-nums text-eerie">{totalRcv || "—"}</td>
-      <td className="py-3 pr-3"><div className="flex flex-col items-start gap-1">{overall}{invoiceBadge}</div></td>
+      <td className="py-3 pr-3">{overall}</td>
       <td className="py-3 pr-4 text-right">
         <Link href={`/finished-goods/incoming/${group.poId}`} className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-muted">
           <Eye className="h-4 w-4" /> Detail

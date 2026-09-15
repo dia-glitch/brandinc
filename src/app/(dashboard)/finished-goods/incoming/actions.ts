@@ -282,6 +282,16 @@ export async function createInvoiceReference(input: InvoiceRefInput): Promise<{ 
   return { ok: true, invoiceNo };
 }
 
+/** Tutup / buka kembali PO secara MANUAL (Delivered). delivered_at menyimpan status. */
+export async function closePO(poId: string, close: boolean): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = createClient();
+  if (!canAct(await getRole(supabase), "fg_incoming_qc")) return { ok: false, error: "Anda tidak punya akses untuk aksi ini." };
+  const { error } = await supabase.from("production_pos").update({ delivered_at: close ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq("id", poId);
+  if (error) return { ok: false, error: error.message };
+  rv();
+  return { ok: true };
+}
+
 /* ---------------- TAHAP 3: TERIMA REPAIR (buat batch inbound baru) ---------------- */
 
 export type RepairReturnLine = { sku: string; qtyBalik: number };

@@ -14,7 +14,7 @@ export default async function IncomingDetailPage({ params }: { params: { poId: s
 
   const { data: po } = await supabase
     .from("production_pos")
-    .select("id,code,brand_id,spk_id,supplier_id,status")
+    .select("id,code,brand_id,spk_id,supplier_id,status,delivered_at")
     .eq("id", poId)
     .is("deleted_at", null)
     .maybeSingle();
@@ -61,6 +61,7 @@ export default async function IncomingDetailPage({ params }: { params: { poId: s
     incoming_no: (r.incoming_no as number) ?? 1,
     status: (r.status as string) ?? "inbound",
     invoice_no: (r.invoice_no as string | null) ?? null,
+    po_closed: Boolean(po.delivered_at),
     product_name: (rLines.find((l) => l.receipt_id === r.id)?.product_name as string | undefined) ?? "",
     lines: rLines.filter((l) => l.receipt_id === r.id).map((l) => ({
       id: l.id as string,
@@ -85,6 +86,7 @@ export default async function IncomingDetailPage({ params }: { params: { poId: s
     brand: brandName((po.brand_id as string | null) ?? null),
     totalQtyPo: poLines.reduce((s, l) => s + (Number(l.qty) || 0), 0),
     status: (po.status as string) ?? "in_progress",
+    closed: Boolean(po.delivered_at),
   };
 
   let canEdit = true;

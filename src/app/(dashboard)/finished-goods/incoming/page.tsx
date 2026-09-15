@@ -9,7 +9,7 @@ async function getData() {
   if (!isSupabaseConfigured()) return { pos: [] as POOpt[], warehouses: [] as WarehouseOpt[], rows: [] as IncRow[] };
   const supabase = createClient();
   const [poRes, poLineRes, varRes, brandRes, supRes, whRes, rcptRes, rLineRes] = await Promise.all([
-    supabase.from("production_pos").select("id,code,brand_id,spk_id,supplier_id,status").is("deleted_at", null).order("code", { ascending: false }),
+    supabase.from("production_pos").select("id,code,brand_id,spk_id,supplier_id,status,delivered_at").is("deleted_at", null).order("code", { ascending: false }),
     supabase.from("production_po_lines").select("po_id,sku,size,product_name,qty,unit_cost,received_qty").is("deleted_at", null),
     supabase.from("product_variants").select("id,sku").is("deleted_at", null),
     supabase.from("brands").select("id,name").is("deleted_at", null),
@@ -26,7 +26,8 @@ async function getData() {
   const variantBySku = new Map<string, string>();
   (varRes.data ?? []).forEach((v) => variantBySku.set(v.sku as string, v.id as string));
   const poCodeById = new Map<string, string>();
-  (poRes.data ?? []).forEach((p) => poCodeById.set(p.id as string, p.code as string));
+  const poClosedById = new Map<string, boolean>();
+  (poRes.data ?? []).forEach((p) => { poCodeById.set(p.id as string, p.code as string); poClosedById.set(p.id as string, Boolean(p.delivered_at)); });
   const poLines = poLineRes.data ?? [];
 
   const warehouses = (whRes.data ?? []).map((w) => ({ id: w.id as string, name: w.name as string, kind: (w.kind as string) ?? "warehouse", brandId: (w.brand_id as string | null) ?? null }));
@@ -67,6 +68,7 @@ async function getData() {
     incoming_no: (r.incoming_no as number) ?? 1,
     status: (r.status as string) ?? "inbound",
     invoice_no: (r.invoice_no as string | null) ?? null,
+    po_closed: poClosedById.get((r.po_id as string) ?? "") ?? false,
     product_name: (rLines.find((l) => l.receipt_id === r.id)?.product_name as string | undefined) ?? "",
     lines: rLines.filter((l) => l.receipt_id === r.id).map((l) => ({
       id: l.id as string,
