@@ -67,7 +67,7 @@ export default function DataManagementPage() {
         <p className="flex items-center gap-2 font-extrabold text-danger">🚀 Mulai Bersih (Go-Live)</p>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Menghapus SELURUH data demo: transaksi <b>dan</b> master data contoh
-          (materials, produk, SKU, supplier, kategori/warna/ukuran) + nol-kan saldo awal kas/bank.
+          (materials, produk, SKU, supplier) + nol-kan saldo awal kas/bank. Kategori, warna, ukuran TETAP (master reusable).
           Dipakai <b>sekali</b> saat pindah dari demo ke produksi, supaya mulai dari kosong dengan data asli.
           <b> Brand, gudang, akun kas/bank, dan COA tetap.</b> Tidak bisa dibatalkan. Hanya admin.
         </p>

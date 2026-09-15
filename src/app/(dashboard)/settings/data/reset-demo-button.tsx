@@ -65,7 +65,7 @@ export function GoLiveResetButton() {
       {open ? (
         <div className="space-y-2.5">
           <p className="text-sm font-bold text-danger">
-            Menghapus SEMUA data demo — transaksi + master (materials, produk, SKU, supplier, kategori/warna/ukuran).
+            Menghapus SEMUA data demo — transaksi + master (materials, produk, SKU, supplier). Kategori/warna/ukuran tetap.
             Tidak bisa dibatalkan. Ketik <b>HAPUS</b> untuk konfirmasi.
           </p>
           <div className="flex flex-wrap items-center gap-2.5">

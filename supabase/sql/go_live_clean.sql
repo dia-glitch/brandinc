@@ -46,28 +46,26 @@ do $$ begin
   if to_regclass('public.payment_queue')   is not null then delete from payment_queue;   end if;
 end $$;
 
--- 2) MASTER DATA DEMO (child -> parent, hormati FK)
+-- 2) DATA DEMO yang boleh dihapus (child -> parent).
+--    HANYA produk/SKU, materials, dan suppliers.
+--    DIPERTAHANKAN: categories, colors, sizes, material_categories, supplier_categories
+--    (master data reusable — jangan dihapus).
 delete from product_variants;
 delete from products;
 delete from materials;
 delete from suppliers;
-delete from categories;
-delete from colors;
-delete from sizes;
-delete from material_categories;
-delete from supplier_categories;
 
 -- 3) Nol-kan saldo awal kas/bank (akun tetap ada -> Neraca Kas & Bank + Laba Ditahan jadi 0)
 update cash_accounts set opening_balance = 0;
 
 commit;
 
--- Cek hasil (harus 0 semua)
+-- Cek hasil: yang dihapus harus 0; master reusable harus TETAP ada.
 select
-  (select count(*) from materials)         as materials,
-  (select count(*) from products)          as products,
-  (select count(*) from product_variants)  as variants,
-  (select count(*) from suppliers)         as suppliers,
-  (select count(*) from categories)        as categories,
-  (select count(*) from colors)            as colors,
-  (select count(*) from sizes)             as sizes;
+  (select count(*) from materials)         as materials_0,
+  (select count(*) from products)          as products_0,
+  (select count(*) from product_variants)  as variants_0,
+  (select count(*) from suppliers)         as suppliers_0,
+  (select count(*) from categories)        as categories_keep,
+  (select count(*) from colors)            as colors_keep,
+  (select count(*) from sizes)             as sizes_keep;

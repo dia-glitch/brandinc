@@ -67,11 +67,8 @@ const MASTER_TABLES = [
   "products",
   "materials",
   "suppliers",
-  "categories",
-  "colors",
-  "sizes",
-  "material_categories",
-  "supplier_categories",
+  // JANGAN hapus: categories, colors, sizes, material_categories, supplier_categories
+  // -> itu master data reusable (dimensi), bukan data demo sekali pakai.
 ];
 
 /**
