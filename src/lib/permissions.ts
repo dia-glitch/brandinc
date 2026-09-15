@@ -157,6 +157,7 @@ const ROUTE_MAP: [string, PageKey][] = [
   ["/inventory", "inventory"],
   ["/finished-goods/incoming", "fg_incoming_qc"],
   ["/finished-goods", "fg_stock"],
+  ["/pos", "sales_penjualan"],
   ["/sales", "sales_penjualan"],
   ["/raw-material/materials", "rm_create"],
   ["/raw-material/po", "rm_po"],

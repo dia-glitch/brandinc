@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Boxes, Warehouse, PackageOpen, Factory, Store, Truck, CalendarClock,
-  Images, CreditCard, Wallet, BookText, BarChart3, Settings, HelpCircle, Receipt,
+  Images, CreditCard, Wallet, BookText, BarChart3, Settings, HelpCircle, Receipt, ShoppingCart,
   Users, ShieldCheck, Database, type LucideIcon,
 } from "lucide-react";
 import type { PageKey } from "@/lib/permissions";
@@ -37,6 +37,7 @@ const InventoryLedger: NavItem = { label: "Inventory Ledger", icon: Warehouse, p
   { key: "dist_submit", href: "/distribution/ledger" }, { key: "dist_process", href: "/distribution/ledger" },
 ] };
 const Sales: NavItem = { label: "Sales", icon: CreditCard, pages: [{ key: "sales_penjualan", href: "/sales" }] };
+const POS: NavItem = { label: "POS / Kasir", icon: ShoppingCart, pages: [{ key: "sales_penjualan", href: "/pos" }] };
 const Katalog: NavItem = { label: "Katalog", icon: Images, pages: [{ key: "catalog", href: "/katalog" }] };
 const Lifecycle: NavItem = { label: "Lifecycle Produk", icon: CalendarClock, pages: [{ key: "product_lifecycle", href: "/lifecycle" }] };
 const Finance: NavItem = { label: "Finance", icon: Wallet, pages: [
@@ -60,7 +61,7 @@ export const SECTIONS: NavSection[] = [
   { key: "produksi", label: "Production & Purchasing", desc: "Bahan baku, produksi & master data tim", icon: Factory, items: [RawMaterial, Production, MasterProduksi] },
   { key: "inbound", label: "Inbound / Receiving", desc: "Penerimaan, stok & invoice", icon: PackageOpen, items: [FinishedGoods, Invoice, Inventory] },
   { key: "distribusi", label: "Distribution", desc: "Distribusi, ledger stok & channel", icon: Truck, items: [Distribution, InventoryLedger] },
-  { key: "sales", label: "Sales", desc: "Penjualan, katalog & lifecycle", icon: CreditCard, items: [Sales, Katalog, Lifecycle] },
+  { key: "sales", label: "Sales", desc: "Penjualan, POS, katalog & lifecycle", icon: CreditCard, items: [Sales, POS, Katalog, Lifecycle] },
   { key: "finance", label: "Finance & Accounting", desc: "Keuangan & akuntansi", icon: Wallet, items: [Finance, Accounting] },
   { key: "analitik", label: "Analitik & Laporan", desc: "Business Intelligence & laporan", icon: BarChart3, items: [BusinessIntelligence] },
   { key: "setting", label: "Setting", desc: "Master data & pengaturan", icon: Settings, items: [MasterData, PenggunaRole, AksesHalaman, DataManagement] },
