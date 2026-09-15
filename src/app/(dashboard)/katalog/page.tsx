@@ -17,7 +17,7 @@ async function getData(): Promise<{ brands: KatalogBrand[] }> {
   const supabase = createClient();
   const [brandRes, prodRes, varRes, costing] = await Promise.all([
     supabase.from("brands").select("id,name").is("deleted_at", null).order("name"),
-    supabase.from("products").select("id,name,brand_id,style_code,retail_price,catalog_image_url").is("deleted_at", null),
+    supabase.from("products").select("id,name,brand_id,style_code,retail_price,catalog_image_url,launch_date").is("deleted_at", null),
     supabase.from("product_variants").select("product_id,sku,size,color,retail_price").is("deleted_at", null),
     getSkuCosting(supabase),
   ]);
@@ -45,6 +45,7 @@ async function getData(): Promise<{ brands: KatalogBrand[] }> {
     // Harga: prioritas retail dari COGM/variant; fallback ke products.retail_price.
     retail: retailByProd.get(p.id as string) ?? (Number(p.retail_price) || 0),
     image: (p.catalog_image_url as string | null) ?? null,
+    launch: (p.launch_date as string | null) ?? null,
     sizes: Array.from(sizesByProd.get(p.id as string) ?? []).sort(sortSizes),
     colors: Array.from(colorsByProd.get(p.id as string) ?? []).sort(),
   }));
