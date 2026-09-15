@@ -71,9 +71,9 @@ export function Sidebar({ viewKeys }: { viewKeys: PageKey[] }) {
         )}
       </nav>
 
-      <div className="mt-2 rounded-2xl bg-muted p-4">
-        <p className="text-sm font-extrabold">🧪 Mode Demo</p>
-        <p className="mt-0.5 text-xs font-medium text-muted-foreground">Data testing aktif — bisa direset bersih kapan saja.</p>
+      <div className="mt-2 rounded-2xl bg-honeydew/50 p-4">
+        <p className="text-sm font-extrabold">🟢 Mode Live</p>
+        <p className="mt-0.5 text-xs font-medium text-muted-foreground">Data produksi aktif — perubahan bersifat permanen.</p>
       </div>
     </aside>
   );
