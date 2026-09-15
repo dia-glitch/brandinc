@@ -45,7 +45,10 @@ export function APTable({ rows, accounts, canEdit = true }: { rows: Payable[]; a
           <option value="partial">Sebagian</option>
           <option value="paid">Lunas</option>
         </select>
-        <div className="card px-4 py-2 text-sm"><span className="text-muted-foreground">Total outstanding: </span><b className="text-danger">{formatIDR(outstanding)}</b></div>
+        <div className="card px-5 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Total Outstanding</p>
+          <p className="text-2xl font-black tabular-nums tracking-tight text-danger">{formatIDR(outstanding)}</p>
+        </div>
       </div>
 
       {list.length === 0 ? (

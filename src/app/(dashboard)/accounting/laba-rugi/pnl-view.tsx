@@ -12,60 +12,117 @@ export type Expense = { brandId: string | null; category: string; amount: number
 export type BrandOpt = { id: string; name: string };
 export type ChannelOpt = { id: string; name: string };
 
+const MON = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const MON_FULL = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 function thisMonth() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
-function monthLabel(m: string) {
-  if (!m) return "";
-  const [y, mo] = m.split("-");
-  const names = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  return `${names[Number(mo) - 1] ?? mo} ${y}`;
+function monthLabel(m: string) { if (!m) return ""; const [y, mo] = m.split("-"); return `${MON_FULL[Number(mo) - 1] ?? mo} ${y}`; }
+function shortLabel(m: string) { const [y, mo] = m.split("-"); return `${MON[Number(mo) - 1] ?? mo} ${y.slice(2)}`; }
+// N bulan berakhir di anchor (YYYY-MM), termasuk anchor.
+function lastNMonths(anchor: string, n: number): string[] {
+  const [y, mo] = anchor.split("-").map(Number);
+  const out: string[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(y, mo - 1 - i, 1);
+    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+  return out;
 }
 
-export function PnlView({ entries, expenses, brands, channels, canEdit = true }: { entries: Entry[]; expenses: Expense[]; brands: BrandOpt[]; channels: ChannelOpt[]; canEdit?: boolean }) {
-  const [scope, setScope] = useState(""); // "" = Group; else brandId
-  const [month, setMonth] = useState(thisMonth());
-  const [open, setOpen] = useState(false);
+type Metrics = {
+  gross: number; discount: number; returnsAmt: number; hpp: number; commission: number; ppn: number;
+  netSales: number; grossProfit: number; opexByCat: { label: string; amount: number }[]; opexOther: number; totalOpex: number; operatingProfit: number;
+};
 
-  const inMonth = (d: string | null) => !month || (d ?? "").startsWith(month);
+function computePnl(entries: Entry[], expenses: Expense[], scope: string, monthPrefix: string): Metrics {
   const isGroup = scope === "";
-  const brandName = brands.find((b) => b.id === scope)?.name ?? "Semua Brand (Group)";
-
-  const ent = useMemo(() => entries.filter((e) => (isGroup || e.brandId === scope) && inMonth(e.date)), [entries, scope, month]);
-  const exp = useMemo(() => expenses.filter((e) => (isGroup || e.brandId === scope) && inMonth(e.date)), [expenses, scope, month]);
-
+  const inM = (d: string | null) => !monthPrefix || (d ?? "").startsWith(monthPrefix);
+  const ent = entries.filter((e) => (isGroup || e.brandId === scope) && inM(e.date));
+  const exp = expenses.filter((e) => (isGroup || e.brandId === scope) && inM(e.date));
   const salesEnt = ent.filter((e) => !e.isReturn);
   const retEnt = ent.filter((e) => e.isReturn);
   const gross = salesEnt.reduce((s, e) => s + e.gross, 0);
   const discount = salesEnt.reduce((s, e) => s + e.discount, 0);
-  const returnsAmt = retEnt.reduce((s, e) => s + e.gross, 0);   // retur penjualan (contra revenue)
-  const returnsCogs = retEnt.reduce((s, e) => s + e.hpp, 0);    // COGS barang retur (balik)
+  const returnsAmt = retEnt.reduce((s, e) => s + e.gross, 0);
+  const returnsCogs = retEnt.reduce((s, e) => s + e.hpp, 0);
   const hpp = salesEnt.reduce((s, e) => s + e.hpp, 0) - returnsCogs;
   const commission = salesEnt.reduce((s, e) => s + e.commission, 0);
   const ppn = ent.reduce((s, e) => s + e.ppn, 0);
   const netSales = gross - discount - returnsAmt;
   const grossProfit = netSales - hpp;
-
-  const opexByCat = useMemo(() => {
-    const m = new Map<string, number>();
-    exp.forEach((e) => m.set(e.category, (m.get(e.category) ?? 0) + e.amount));
-    return Array.from(m.entries()).map(([label, amount]) => ({ label, amount })).sort((a, b) => b.amount - a.amount);
-  }, [exp]);
-  const indukTotal = isGroup ? expenses.filter((e) => !e.brandId && inMonth(e.date)).reduce((s, e) => s + e.amount, 0) : 0;
-  const totalOpex = commission + opexByCat.reduce((s, c) => s + c.amount, 0);
+  const m = new Map<string, number>();
+  exp.forEach((e) => m.set(e.category, (m.get(e.category) ?? 0) + e.amount));
+  const opexByCat = Array.from(m.entries()).map(([label, amount]) => ({ label, amount })).sort((a, b) => b.amount - a.amount);
+  const opexOther = opexByCat.reduce((s, c) => s + c.amount, 0);
+  const totalOpex = commission + opexOther;
   const operatingProfit = grossProfit - totalOpex;
+  return { gross, discount, returnsAmt, hpp, commission, ppn, netSales, grossProfit, opexByCat, opexOther, totalOpex, operatingProfit };
+}
+
+type Mode = "bulan" | "3" | "6" | "tahun";
+
+export function PnlView({ entries, expenses, brands, channels, canEdit = true }: { entries: Entry[]; expenses: Expense[]; brands: BrandOpt[]; channels: ChannelOpt[]; canEdit?: boolean }) {
+  const [scope, setScope] = useState("");
+  const [mode, setMode] = useState<Mode>("bulan");
+  const [month, setMonth] = useState(thisMonth());
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [open, setOpen] = useState(false);
+
+  const isGroup = scope === "";
+  const brandName = brands.find((b) => b.id === scope)?.name ?? "Semua Brand (Group)";
+
+  // Kolom periode untuk mode komparasi.
+  const periods = useMemo(() => {
+    if (mode === "3") return lastNMonths(month, 3);
+    if (mode === "6") return lastNMonths(month, 6);
+    if (mode === "tahun") return Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
+    return [month];
+  }, [mode, month, year]);
+
+  const single = useMemo(() => computePnl(entries, expenses, scope, month), [entries, expenses, scope, month]);
+  const cols = useMemo(() => periods.map((p) => ({ key: p, m: computePnl(entries, expenses, scope, p) })), [entries, expenses, scope, periods]);
+  const totalM = useMemo(() => computePnl(entries, expenses, scope, mode === "tahun" ? String(year) : ""), [entries, expenses, scope, mode, year]);
+  // Untuk 3/6 bulan: total = jumlah kolom (rentang tidak kontigu ke awal tahun).
+  const rangeTotal = useMemo(() => {
+    if (mode === "tahun") return totalM;
+    const sum = (f: (m: Metrics) => number) => cols.reduce((s, c) => s + f(c.m), 0);
+    return {
+      netSales: sum((m) => m.netSales), hpp: sum((m) => m.hpp), grossProfit: sum((m) => m.grossProfit),
+      commission: sum((m) => m.commission), opexOther: sum((m) => m.opexOther), totalOpex: sum((m) => m.totalOpex),
+      operatingProfit: sum((m) => m.operatingProfit), ppn: sum((m) => m.ppn),
+    };
+  }, [cols, mode, totalM]);
+
+  const indukTotal = isGroup ? expenses.filter((e) => !e.brandId && (mode === "bulan" ? (e.date ?? "").startsWith(month) : true)).reduce((s, e) => s + e.amount, 0) : 0;
+
+  const periodTitle = mode === "bulan" ? monthLabel(month) : mode === "tahun" ? `Setahun ${year}` : `${periods.length} bulan (${shortLabel(periods[0])} – ${shortLabel(periods[periods.length - 1])})`;
 
   function download() {
-    const rows: [string, number][] = [
-      ["Penjualan Bruto", gross], ["Diskon Penjualan", -discount], ["Retur Penjualan", -returnsAmt], ["Penjualan Neto", netSales],
-      ["HPP", -hpp], ["Laba Kotor", grossProfit], ["Komisi Channel", -commission],
-      ...opexByCat.map((c) => [`Beban · ${c.label}`, -c.amount] as [string, number]),
-      ["Total Beban Operasional", -totalOpex], ["Laba Usaha", operatingProfit], ["Estimasi PPN (memo)", ppn],
-    ];
-    const csv = "﻿" + ["Keterangan,Nilai", ...rows.map((r) => `"${r[0]}",${r[1]}`)].join("\n");
+    let csv: string;
+    if (mode === "bulan") {
+      const rows: [string, number][] = [
+        ["Penjualan Neto", single.netSales], ["HPP", -single.hpp], ["Laba Kotor", single.grossProfit],
+        ["Komisi Channel", -single.commission], ["Total Beban Operasional", -single.totalOpex], ["Laba Usaha", single.operatingProfit], ["Estimasi PPN", single.ppn],
+      ];
+      csv = "﻿" + ["Keterangan,Nilai", ...rows.map((r) => `"${r[0]}",${r[1]}`)].join("\n");
+    } else {
+      const head = ["Keterangan", ...cols.map((c) => shortLabel(c.key)), "Total"];
+      const defs: [string, (m: Metrics) => number][] = [
+        ["Penjualan Neto", (m) => m.netSales], ["HPP", (m) => -m.hpp], ["Laba Kotor", (m) => m.grossProfit],
+        ["Komisi Channel", (m) => -m.commission], ["Beban Operasional", (m) => -m.opexOther], ["Laba Usaha", (m) => m.operatingProfit],
+      ];
+      const rt = rangeTotal as Metrics;
+      const lines = defs.map(([label, f]) => [`"${label}"`, ...cols.map((c) => f(c.m)), f(rt)].join(","));
+      csv = "﻿" + [head.join(","), ...lines].join("\n");
+    }
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `laba-rugi-${isGroup ? "group" : brandName}.csv`;
+    const a = document.createElement("a"); a.href = url; a.download = `laba-rugi-${isGroup ? "group" : brandName}-${mode}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   }
+
+  const MODES: { v: Mode; label: string }[] = [{ v: "bulan", label: "Bulanan" }, { v: "3", label: "3 Bulan" }, { v: "6", label: "6 Bulan" }, { v: "tahun", label: "Tahunan" }];
+  const netProfit = mode === "bulan" ? single.operatingProfit : (rangeTotal as Metrics).operatingProfit;
+  const netMargin = mode === "bulan" ? single.netSales : (rangeTotal as Metrics).netSales;
 
   return (
     <div className="space-y-5">
@@ -73,7 +130,7 @@ export function PnlView({ entries, expenses, brands, channels, canEdit = true }:
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Accounting</p>
           <h1 className="text-2xl font-extrabold">Laba Rugi (P&amp;L)</h1>
-          <p className="mt-1 text-sm font-medium text-muted-foreground">Per brand &amp; konsolidasi group. Beban kategori Umum (tanpa brand) = beban induk, muncul di Group.</p>
+          <p className="mt-1 text-sm font-medium text-muted-foreground">Per brand &amp; konsolidasi group. Bandingkan 3 bulan, 6 bulan, atau setahun penuh. Beban kategori Umum (tanpa brand) = beban induk, muncul di Group.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={download} className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-surface px-4 text-sm font-bold hover:bg-muted"><Download className="h-4 w-4" /> Download</button>
@@ -86,45 +143,123 @@ export function PnlView({ entries, expenses, brands, channels, canEdit = true }:
           <option value="">Semua Brand (Group)</option>
           {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
-        <div className="flex items-center gap-2 text-sm">
-          <span className="font-bold text-muted-foreground">Bulan</span>
-          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-semibold outline-none focus:border-primary/40" />
+        <div className="flex rounded-xl border border-border bg-background p-0.5">
+          {MODES.map((m) => (
+            <button key={m.v} onClick={() => setMode(m.v)} data-active={mode === m.v}
+              className={"rounded-lg px-3 py-1.5 text-sm font-bold transition " + (mode === m.v ? "bg-eerie text-white" : "text-muted-foreground hover:text-foreground")}>
+              {m.label}
+            </button>
+          ))}
         </div>
+        {mode === "tahun" ? (
+          <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-semibold outline-none focus:border-primary/40">
+            {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i).map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+        ) : (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-bold text-muted-foreground">{mode === "bulan" ? "Bulan" : "s/d Bulan"}</span>
+            <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="h-10 rounded-xl border border-border bg-background px-3 text-sm font-semibold outline-none focus:border-primary/40" />
+          </div>
+        )}
       </div>
 
-      <div className="card p-0">
-        <div className="border-b border-border px-5 py-3"><h2 className="text-sm font-black uppercase tracking-wide">Laporan Laba Rugi · {brandName} · {monthLabel(month)}</h2></div>
-        <table className="w-full text-sm">
-          <tbody>
-            <Head label="Pendapatan" />
-            <Line label="Penjualan Bruto" value={gross} />
-            <Line label="Diskon Penjualan" value={-discount} muted />
-            {returnsAmt > 0 && <Line label="Retur Penjualan" value={-returnsAmt} muted />}
-            <Sub label="Penjualan Neto" value={netSales} />
-            <Head label="Beban Pokok Penjualan" />
-            <Line label="Harga Pokok Penjualan (HPP)" value={-hpp} muted />
-            <Sub label="Laba Kotor" value={grossProfit} />
-            <Head label="Beban Operasional" />
-            <Line label="Komisi Channel / Konsinyasi" value={-commission} muted />
-            {opexByCat.map((c) => <Line key={c.label} label={`Beban · ${c.label}`} value={-c.amount} muted />)}
-            {opexByCat.length === 0 && commission === 0 && <tr><td className="px-5 py-2.5 text-sm text-muted-foreground" colSpan={2}>Belum ada beban pada scope ini.</td></tr>}
-            <Sub label="Total Beban Operasional" value={-totalOpex} />
-            <Total label="LABA USAHA (Operating Profit)" value={operatingProfit} />
-          </tbody>
-        </table>
-      </div>
+      {mode === "bulan" ? (
+        <SingleReport m={single} brandName={brandName} periodTitle={periodTitle} isGroup={isGroup} indukTotal={indukTotal} />
+      ) : (
+        <ComparisonReport cols={cols} total={rangeTotal as Metrics} brandName={brandName} periodTitle={periodTitle} netProfit={netProfit} netMargin={netMargin} />
+      )}
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="card px-4 py-2.5"><p className="text-xs font-bold uppercase text-muted-foreground">Estimasi PPN Keluaran</p><p className="text-lg font-black tabular-nums">{formatIDR(ppn)}</p></div>
-        <div className="card px-4 py-2.5"><p className="text-xs font-bold uppercase text-muted-foreground">Margin Kotor</p><p className="text-lg font-black tabular-nums">{netSales > 0 ? Math.round((grossProfit / netSales) * 100) : 0}%</p></div>
-        {isGroup && <div className="card px-4 py-2.5"><p className="text-xs font-bold uppercase text-muted-foreground">Beban Induk (Umum)</p><p className="text-lg font-black tabular-nums">{formatIDR(indukTotal)}</p></div>}
-      </div>
-
-      <EntryList entries={ent} brands={brands} canEdit={canEdit} />
+      {mode === "bulan" && <EntryList entries={entries.filter((e) => (isGroup || e.brandId === scope) && (e.date ?? "").startsWith(month))} brands={brands} canEdit={canEdit} />}
 
       {open && <SalesForm brands={brands} channels={channels} defaultBrand={scope} onClose={() => setOpen(false)} />}
     </div>
   );
+}
+
+function SingleReport({ m, brandName, periodTitle, isGroup, indukTotal }: { m: Metrics; brandName: string; periodTitle: string; isGroup: boolean; indukTotal: number }) {
+  return (
+    <>
+      <div className="card p-0">
+        <div className="border-b border-border px-5 py-3"><h2 className="text-sm font-black uppercase tracking-wide">Laporan Laba Rugi · {brandName} · {periodTitle}</h2></div>
+        <table className="w-full text-sm">
+          <tbody>
+            <Head label="Pendapatan" />
+            <Line label="Penjualan Bruto" value={m.gross} />
+            <Line label="Diskon Penjualan" value={-m.discount} muted />
+            {m.returnsAmt > 0 && <Line label="Retur Penjualan" value={-m.returnsAmt} muted />}
+            <Sub label="Penjualan Neto" value={m.netSales} />
+            <Head label="Beban Pokok Penjualan" />
+            <Line label="Harga Pokok Penjualan (HPP)" value={-m.hpp} muted />
+            <Sub label="Laba Kotor" value={m.grossProfit} />
+            <Head label="Beban Operasional" />
+            <Line label="Komisi Channel / Konsinyasi" value={-m.commission} muted />
+            {m.opexByCat.map((c) => <Line key={c.label} label={`Beban · ${c.label}`} value={-c.amount} muted />)}
+            {m.opexByCat.length === 0 && m.commission === 0 && <tr><td className="px-5 py-2.5 text-sm text-muted-foreground" colSpan={2}>Belum ada beban pada scope ini.</td></tr>}
+            <Sub label="Total Beban Operasional" value={-m.totalOpex} />
+            <Total label="LABA USAHA (Operating Profit)" value={m.operatingProfit} />
+          </tbody>
+        </table>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <BigStat label="Estimasi PPN Keluaran" value={formatIDR(m.ppn)} />
+        <BigStat label="Margin Kotor" value={`${m.netSales > 0 ? Math.round((m.grossProfit / m.netSales) * 100) : 0}%`} />
+        {isGroup && <BigStat label="Beban Induk (Umum)" value={formatIDR(indukTotal)} />}
+      </div>
+    </>
+  );
+}
+
+function ComparisonReport({ cols, total, brandName, periodTitle, netProfit, netMargin }: { cols: { key: string; m: Metrics }[]; total: Metrics; brandName: string; periodTitle: string; netProfit: number; netMargin: number }) {
+  const rows: { label: string; f: (m: Metrics) => number; strong?: boolean; head?: boolean; neg?: boolean }[] = [
+    { label: "Penjualan Neto", f: (m) => m.netSales, strong: true },
+    { label: "HPP", f: (m) => -m.hpp, neg: true },
+    { label: "Laba Kotor", f: (m) => m.grossProfit, strong: true },
+    { label: "Komisi Channel", f: (m) => -m.commission, neg: true },
+    { label: "Beban Operasional", f: (m) => -m.opexOther, neg: true },
+    { label: "Total Beban Operasional", f: (m) => -m.totalOpex, neg: true, strong: true },
+    { label: "Laba Usaha", f: (m) => m.operatingProfit, strong: true },
+  ];
+  return (
+    <>
+      <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Laba Usaha · {periodTitle}</p>
+          <p className={"mt-1 text-3xl font-black tracking-tight " + (netProfit < 0 ? "text-danger" : "text-emerald-700")}>{formatIDR(netProfit)}</p>
+          <p className="text-xs font-semibold text-muted-foreground">margin {netMargin > 0 ? Math.round((netProfit / netMargin) * 100) : 0}% · {brandName}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Penjualan Neto</p>
+          <p className="mt-1 text-2xl font-black tracking-tight">{formatIDR(total.netSales)}</p>
+          <p className="text-xs font-semibold text-muted-foreground">HPP {formatIDR(total.hpp)} · {cols.length} kolom</p>
+        </div>
+      </div>
+
+      <div className="card overflow-x-auto p-0">
+        <table className="w-full min-w-[720px] text-sm">
+          <thead>
+            <tr className="border-b border-border text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              <th className="py-2.5 pl-4 pr-3 text-left">Keterangan</th>
+              {cols.map((c) => <th key={c.key} className="py-2.5 px-3 text-right">{shortLabel(c.key)}</th>)}
+              <th className="py-2.5 px-4 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.label} className={"border-t border-border/60 " + (r.strong ? "bg-muted/20 font-extrabold" : "font-semibold")}>
+                <td className={"py-2.5 pl-4 pr-3 " + (r.neg && !r.strong ? "text-muted-foreground" : "")}>{r.label}</td>
+                {cols.map((c) => { const v = r.f(c.m); return <td key={c.key} className={"py-2.5 px-3 text-right tabular-nums " + (v < 0 ? "text-danger" : "")}>{v === 0 ? "—" : formatIDR(v)}</td>; })}
+                <td className={"py-2.5 px-4 text-right tabular-nums font-extrabold " + (r.f(total) < 0 ? "text-danger" : "")}>{formatIDR(r.f(total))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function BigStat({ label, value }: { label: string; value: string }) {
+  return <div className="card p-5"><p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-1 text-3xl font-black tabular-nums tracking-tight">{value}</p></div>;
 }
 
 function EntryList({ entries, brands, canEdit = true }: { entries: Entry[]; brands: BrandOpt[]; canEdit?: boolean }) {
