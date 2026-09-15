@@ -357,26 +357,44 @@ function RekapPanel({ recap, date, setDate, location }: { recap: RecapRow[]; dat
 
 /* ---------------- Struk / Receipt ---------------- */
 function receiptHtml(r: Receipt): string {
-  const lines = r.lines.map((l) => `<tr><td>${l.name}${l.size ? " · " + l.size : ""}<br><span style="color:#888;font-size:11px">${l.sku} × ${l.qty}</span></td><td align="right">${formatIDR(l.qty * l.price)}</td></tr>`).join("");
-  return `<div style="font-family:system-ui,sans-serif;max-width:320px">
-    <h2 style="margin:0">Brand.Inc</h2>
-    <p style="margin:2px 0;color:#555">${r.location}</p>
-    <p style="margin:2px 0;color:#555;font-size:12px">${r.dateTime} · ${r.method}</p>
-    <p style="margin:2px 0;color:#555;font-size:12px">No: ${r.codes.join(", ")}</p>
-    ${r.customer.name || r.customer.phone ? `<p style="margin:2px 0;font-size:12px">Customer: ${r.customer.name || "-"} ${r.customer.phone ? "· " + r.customer.phone : ""}</p>` : ""}
-    <hr>
-    <table style="width:100%;border-collapse:collapse;font-size:13px">${lines}</table>
-    <hr>
-    <table style="width:100%;font-weight:800"><tr><td>TOTAL (${r.totalQty} pcs)</td><td align="right">${formatIDR(r.total)}</td></tr></table>
-    <p style="text-align:center;color:#888;font-size:12px;margin-top:12px">Terima kasih 🙏</p>
+  const m = (n: number) => formatIDR(n);
+  const rows = r.lines.map((l) => `<tr><td style="padding:1px 0;vertical-align:top">${l.name}${l.size ? " · " + l.size : ""}<div style="color:#555;font-size:10px">${l.sku} x${l.qty} @ ${m(l.price)}</div></td><td style="text-align:right;vertical-align:top;white-space:nowrap">${m(l.qty * l.price)}</td></tr>`).join("");
+  const cust = r.customer.name || r.customer.phone ? `<div class="sm">Cust : ${r.customer.name || "-"}${r.customer.phone ? " / " + r.customer.phone : ""}</div>` : "";
+  return `<div class="rcpt">
+    <div class="ctr b big">Brand.Inc</div>
+    <div class="ctr">${r.location}</div>
+    <div class="ctr sm">${r.dateTime}</div>
+    <div class="sm">No&nbsp;&nbsp;&nbsp;: ${r.codes.join(", ")}</div>
+    <div class="sm">Bayar : ${r.method}</div>
+    ${cust}
+    <div class="hr"></div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">${rows}</table>
+    <div class="hr"></div>
+    <table style="width:100%;font-weight:bold;font-size:13px"><tr><td>TOTAL (${r.totalQty} pcs)</td><td style="text-align:right">${m(r.total)}</td></tr></table>
+    <div class="hr"></div>
+    <div class="ctr sm">Terima kasih 🙏</div>
   </div>`;
 }
-function printHtml(title: string, bodyHtml: string) {
-  const w = window.open("", "_blank", "width=380,height=640");
+
+function printHtml(title: string, bodyHtml: string, paper: "receipt" | "a4" = "a4") {
+  const style = paper === "receipt"
+    ? `<style>
+        @page { size: 80mm auto; margin: 3mm; }
+        html,body { margin:0; padding:0; }
+        body { width:74mm; font-family:'Courier New',ui-monospace,monospace; color:#000; }
+        .rcpt { font-size:12px; line-height:1.35; }
+        .ctr { text-align:center; }
+        .b { font-weight:bold; }
+        .big { font-size:16px; }
+        .sm { font-size:11px; }
+        .hr { border-top:1px dashed #000; margin:4px 0; }
+      </style>`
+    : `<style>@page{margin:12mm} body{font-family:system-ui,sans-serif}</style>`;
+  const w = window.open("", "_blank", paper === "receipt" ? "width=320,height=640" : "width=560,height=720");
   if (!w) { alert("Popup diblokir. Izinkan popup untuk mencetak."); return; }
-  w.document.write(`<!doctype html><html><head><title>${title}</title></head><body>${bodyHtml}</body></html>`);
+  w.document.write(`<!doctype html><html><head><title>${title}</title>${style}</head><body>${bodyHtml}</body></html>`);
   w.document.close(); w.focus();
-  setTimeout(() => { w.print(); }, 250);
+  setTimeout(() => { w.print(); }, 300);
 }
 
 function ReceiptModal({ receipt, onClose }: { receipt: Receipt; onClose: () => void }) {
@@ -414,7 +432,7 @@ function ReceiptModal({ receipt, onClose }: { receipt: Receipt; onClose: () => v
           <div className="flex justify-between font-extrabold"><span>Total ({receipt.totalQty} pcs)</span><span className="tabular-nums">{formatIDR(receipt.total)}</span></div>
         </div>
         <div className="mt-4 flex gap-2">
-          <button onClick={() => printHtml(`Struk ${receipt.codes.join(",")}`, receiptHtml(receipt))} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-eerie px-4 py-2.5 text-sm font-bold text-white hover:opacity-90"><Printer className="h-4 w-4" /> Cetak Struk</button>
+          <button onClick={() => printHtml(`Struk ${receipt.codes.join(",")}`, receiptHtml(receipt), "receipt")} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-eerie px-4 py-2.5 text-sm font-bold text-white hover:opacity-90"><Printer className="h-4 w-4" /> Cetak Struk</button>
           <button onClick={emailReceipt} disabled={!receipt.customer.email.trim()} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-bold hover:bg-muted disabled:opacity-50"><Mail className="h-4 w-4" /> Email Struk</button>
         </div>
         <button onClick={onClose} className="mt-2 w-full rounded-xl py-2 text-sm font-bold text-muted-foreground hover:bg-muted">Transaksi Baru</button>
